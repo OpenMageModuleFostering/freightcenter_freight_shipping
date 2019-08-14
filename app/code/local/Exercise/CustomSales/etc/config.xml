@@ -1,0 +1,34 @@
+<config>
+    <modules>
+        <Exercise_CustomSales>
+            <version>1.7.0.2</version>
+        </Exercise_CustomSales>
+    </modules>
+    <adminhtml>
+        <layout>
+            <updates>
+                <customsales>
+                    <file>exercise_customsales.xml</file>
+                </customsales>
+            </updates>
+        </layout>
+    </adminhtml>
+    <global>
+        <blocks>
+            <customsales>
+                <class>Exercise_CustomSales_Block</class>
+            </customsales>
+            
+			<adminhtml>
+                <rewrite>
+                   <sales_order_view_items>Exercise_CustomSales_Block_Sales_Order_View_Items</sales_order_view_items>
+                </rewrite>
+            </adminhtml>
+			<adminhtml>
+                <rewrite>
+                    <sales_order_view_items_renderer_default>Exercise_CustomSales_Block_Sales_Order_View_Items_Renderer_Default</sales_order_view_items_renderer_default>
+                </rewrite>
+            </adminhtml>
+        </blocks>
+    </global>
+</config>

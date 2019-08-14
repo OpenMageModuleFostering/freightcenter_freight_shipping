@@ -3,11 +3,11 @@
     "type": "magento-module",
     "license": "OSL",
     "homepage": "",
-    "description": "FreightCenter Freight Shipping Extension",
+    "description": "Default",
     "authors": [
     {
-        "name": "FreightCenter, Inc.",
-        "email": "marketing@freightcenter.com"
+        "name": "Freight",
+        "email": "FreightCenter@gmail.com"
     }
 ],
     "suggest": {
