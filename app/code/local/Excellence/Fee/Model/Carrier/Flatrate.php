@@ -32,10 +32,11 @@
  * @package    Mage_Shipping
  * @author      Magento Core Team <core@magentocommerce.com>
  */
-class Mage_Shipping_Model_Carrier_Flatrate
-    extends Mage_Shipping_Model_Carrier_Abstract
+class Excellence_Fee_Model_Carrier_Flatrate
+    extends Mage_Shipping_Model_Carrier_Flatrate
     implements Mage_Shipping_Model_Carrier_Interface
 {
+
 
     protected $_code = 'flatrate';
     protected $_isFixed = true;
@@ -78,6 +79,23 @@ class Mage_Shipping_Model_Carrier_Flatrate
             $shippingPrice = $this->getConfigData('price');
         } elseif ($this->getConfigData('type') == 'I') { // per item
             $shippingPrice = ($request->getPackageQty() * $this->getConfigData('price')) - ($this->getFreeBoxes() * $this->getConfigData('price'));
+			
+			/* subtract flat rate price from freight products */
+            $getcount = '';
+            foreach($request->getAllItems() as $_item) {
+                $getid = $_item->getProductId();
+                $qty = $_item->getQty();
+                $promodel = Mage::getModel('catalog/product')->load($getid);
+                //echo "<pre>";print_r($promodel);exit;
+                $isfreight = $promodel['ship_via_freight'];
+                if($isfreight == 1) {
+                    $getcount += $qty;
+                }
+            }
+            $default_price = $this->getConfigData('price');
+            $minus = ($getcount*$default_price);
+            $shippingPrice = ($shippingPrice-$minus);
+			
         } else {
             $shippingPrice = false;
         }

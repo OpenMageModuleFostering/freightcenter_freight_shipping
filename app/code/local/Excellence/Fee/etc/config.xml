@@ -125,6 +125,11 @@
                     </fee>
                 </entities>
             </fee_mysql4>
+			<shipping>
+			 <rewrite>
+				  <carrier_flatrate>Excellence_Fee_Model_Carrier_Flatrate</carrier_flatrate>
+			 </rewrite>
+		   </shipping>
         </models>
         <resources>
             <fee_setup>
