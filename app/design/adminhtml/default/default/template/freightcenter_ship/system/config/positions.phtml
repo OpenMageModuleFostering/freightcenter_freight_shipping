@@ -1,0 +1,24 @@
+
+<input type="button" onclick="check();" id="button_check" value=" Select All Carriers" />
+<input type="hidden" name="<?php echo $this->getNamePrefix() ?>" value="" /><!-- this is send if nothing is checked -->
+<ul class="checkboxes">
+    <?php foreach ($this->getValues() as $name => $label): ?>
+        <li>
+            <input type="checkbox" value="<?php echo $name?>" name="<?php echo $this->getNamePrefix() ?>[]" id="<?php echo $this->getHtmlId() . '_' . $name ?>"<?php echo ($this->getIsChecked($name) ? ' checked="checked"' : '') ?>/><label for="<?php echo $this->getHtmlId() . '_' . $name ?>">
+                <?php echo $label ?>
+            </label>
+        </li>
+    <?php endforeach;?>
+</ul>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script type="text/javascript">
+jQuery.noConflict();
+//function check(){
+jQuery("#button_check").click(function(){
+jQuery("#row_carriers_freightcenter_positions input[type=checkbox]").attr('checked', true);
+//});
+/* jQuery("#button_uncheck").click(function(){
+jQuery("#row_carriers_freightcenter_positions input[type=checkbox]").prop('checked', false);
+}); */
+});
+</script>

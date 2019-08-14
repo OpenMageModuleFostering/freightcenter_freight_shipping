@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<layout>
+    <adminhtml_sales_order_view>
+        <reference name="sales_order_tabs">
+		
+		<block type="frieghtadmin/adminhtml_sales_order_view_tab_frieghtadmin" name="tab_frieghtadmin" template="frieghtadmin/sales/order/view/tab/frieghtadmin.phtml">
+		
+		</block> 
+	
+            <action method="addTab">
+                 <name>frieghtadmin</name>
+                 <block>frieghtadmin/adminhtml_sales_order_view_tab_frieghtadmin</block>
+            </action>
+        </reference>
+	</adminhtml_sales_order_view>
+</layout>

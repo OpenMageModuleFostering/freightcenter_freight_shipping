@@ -1,0 +1,1068 @@
+
+ <link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+ <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+  <link rel="stylesheet" href="/resources/demos/style.css">
+<style>
+.admin_view div{
+ margin-top: 3px;
+    padding: 2px;
+}
+.admin_view > span {
+    float: left;
+    padding: 3px;
+}
+.new_class{
+background-color: hsl(26, 88%, 46%); border: 1px solid hsl(17, 100%, 27%);   border-radius: 5px; float: right;  margin-right: 20px;    padding: 2px; text-align: center; width: 100px;   color: hsl(0, 0%, 100%); cursor:pointer;
+}
+.new_class_bol{background-color: hsl(26, 88%, 46%); border: 1px solid hsl(17, 100%, 27%);   border-radius: 5px; float: right;  margin-right: 20px;    padding: 2px; text-align: center; width: 100px;   color: hsl(0, 0%, 100%); cursor:pointer; text-decoration: none;}
+.success-msg-w{
+background-color: hsl(0, 100%, 50%);
+color:white;
+}
+
+</style>
+<ul class="messages" style="display:none"><li class="success-msg"><ul><li><span id="append_ware">Shipment successfully booked for:</span></li></ul></li></ul>
+<ul class="messages_error" style="display:none"><li class=""  style=" background: #F9927E;color: hsl(0, 0%, 100%);padding: 10px;"><ul><li><span id="append_ware_error"></span></li></ul></li></ul>
+<ul class="messages_ship" style="display:none;"><li class="success-msg" style="padding: 10px;"><ul><li><span id="append_ware_ship" style="margin-left:30px;  font-weight: bold;">shipment successfully canceled for:</span></li></ul></li></ul>
+<ul class="messages_ship_w" style="display:none; background: #F9927E;color: hsl(0, 0%, 100%);"><li class="success-msg-w" style="padding: 10px; "><ul><li><span id="append_ware_ship_w" style="margin-left:30px;"></span></li></ul></li></ul>
+<ul class="messages_ship_error" style="display:none"><li class="" style=" background: #F9927E;color: hsl(0, 0%, 100%);padding: 10px;"><ul><li><span id="append_ware_ship_error"></span></li></ul></li></ul>
+
+
+
+
+<?php
+//echo "hello";
+/* require_once 'app/Mage.php';
+umask(0);
+Mage::app('default'); */
+								/* resource = Mage::getSingleton('core/resource');
+								$readConnection = $resource->getConnection('core_read');
+								$tableNamep = $resource->getTableName('brst_ship_warehouses'); */
+								$admin = Mage::getSingleton('admin/session')->getUser();
+								$name = 	$admin->getName();
+							?>
+							<input type="hidden" name="agent" id="agent" value="<?php echo $name; ?>" />
+							<?php 
+						
+						 
+function empty_ak($data)
+{
+	if($data!=''){return $data;}
+	else {return "&nbsp;";}
+}
+	$collection = Mage::getModel('catalog/product')->getCollection();
+	$myarray=array();
+	foreach ($collection as $product_all) 
+	{
+			//echo '<pre>';print_r($product);echo '</pre>';   
+			$sku = $product_all['sku'];
+			$product_id = Mage::getModel('catalog/product')->getIdBySku($sku);
+			$product    = Mage::getModel('catalog/product');
+			$product ->load($product_id);
+			$pk_f = empty_ak($product['ship_via_freight']);   
+					if($pk_f!=1)
+						continue;
+					$myarray[]=$product;
+
+	} 
+		    $_order = $this->getOrder(); 
+			$order_id =  $_order->getId(); 
+		    $order_add = Mage::getModel('sales/order')->load($order_id);
+			$shippingId = $order_add->getShippingAddress()->getId();
+			$address = Mage::getModel('sales/order_address')->load($shippingId);
+		    $order = Mage::getModel("sales/order")->load($order_id);
+		    $ordered_items = $order->getAllItems();
+			//echo '<pre>'; print_r($address);  echo '</pre>';
+		    $quote_id = $order->getQuoteId();
+			//echo  $qtyordered = $item->getQty();
+			$grandtotal = $order->getGrandTotal();
+			foreach($address as $addre){
+			 if($addre['postcode']){
+			 $pincode = $addre['postcode'];
+			 }
+			 if($addre['email']){
+			 $email = $addre['email'];
+			 }
+			 if($addre['company']){
+			 $company = $addre['company'];
+			 }
+			 if($addre['firstname']){
+			 $firstname = $addre['firstname'];
+			 }if($addre['lastname']){
+			 $lastname = $addre['lastname'];
+			 }if($addre['telephone']){
+			 $telephone = $addre['telephone'];
+			 }if($addre['street']){
+			 $street = $addre['street'];
+			 }if($addre['city']){
+			 $city = $addre['city'];
+			 }
+			 if($addre['region']){
+			 $region = $addre['region'];
+			 }if($addre['country_id']){
+			 $country_id = $addre['country_id'];
+			 }
+			}
+			
+		$ware_count = array();
+		
+    foreach($ordered_items as $item)
+	{
+			//$or_id =  $item->getItemId();
+			
+		$or_id =  $item['product_id'];
+	
+		
+			$product_sku = $item['sku'];
+			$product_price = $item['price'];
+			//echo $quote_id = $item['quote_id'];
+			//echo "foreach1";
+			//echo '<pre>'; print_r($myarray);  echo '</pre>';
+			$product_count = array();
+		foreach($myarray as $frieght)
+		{
+			//echo "foreach2";
+			//echo $frieght['ship_via_freight'];
+		 	$id = $frieght['entity_id'];
+			
+			
+			if($id == $or_id)
+			{
+			 	$qty_ordered =  $item['qty_ordered'];
+				$product_sku = $item['sku'];
+				$product_name = $item['name'];
+				
+					//echo "if condition";
+					// echo $frieght['origin_warehouse'];
+				//	echo $id = $frieght['entity_id'];
+					$nmfc = $frieght['nmfc'];
+			$freight_length = $frieght['freight_length'];
+			$freight_width = $frieght['freight_width'];
+			$freight_height = $frieght['freight_height'];
+			
+			$attribute2= Mage::getModel('eav/config')->getAttribute('catalog_product', 'freight_class');
+				foreach ( $attribute2->getSource()->getAllOptions(true, true) as $opt_menu_f)
+				{
+					$m1_attribute_f[$opt_menu_f['value']] = $opt_menu_f['label'];
+				}
+				$freight_class = $m1_attribute_f[$frieght['freight_class']];
+				$hazardous_materials = $frieght['hazardous_materials'];
+				$packaging_type = $frieght['packaging_type'];
+				$short_description = $frieght['short_description'];
+				$origin_warehouse = $frieght['origin_warehouse'];
+				$weight = $frieght['weight'];
+				$attribute1 = Mage::getModel('eav/config')->getAttribute('catalog_product', 'origin_warehouse');
+				foreach ( $attribute1->getSource()->getAllOptions(true, true) as $opt_menu)
+				{
+					$m1_attribute[$opt_menu['value']] = $opt_menu['label'];
+				}
+				$home_url = Mage::helper('core/url')->getHomeUrl();
+				$home = explode("index.php", $home_url);
+				//echo '<pre>'; print_r($home);exit;
+				$hello = $home[0];
+				
+				?>
+				
+				<input type="hidden" value="<?php echo $hello; ?>" id="url_api" />
+				<?php 
+					//echo "<pre>";print_r($m1_attribute);
+		 	$ware_id = $m1_attribute[$frieght['origin_warehouse']];
+			$product_count[] = $qty_ordered;
+				$product_count[] = $product_sku;
+				$product_count[] = $product_name;
+				$product_count[] = $ware_id;
+				$new_product_count[] = $product_count;
+				$product_count= array();
+		 	$ware_count[] = $m1_attribute[$frieght['origin_warehouse']];
+										$resource = Mage::getSingleton('core/resource');
+										$readConnection = $resource->getConnection('core_read'); 
+										$tableNamep = $resource->getTableName('brst_ship_warehouses');
+										$tableNamep_ship = $resource->getTableName('brst_freight_shipping');
+										$queryp = "SELECT * FROM  $tableNamep WHERE short_name = '$ware_id' ";
+										$breakout_lineitems = Mage::getStoreConfig('carriers/freightcenter/breakout_lineitems');
+										//if($breakout_lineitems == '1'){
+										$queryp_ship = 'SELECT * FROM ' . $tableNamep_ship. ' WHERE quote_id = ' . $quote_id . ' AND product_id = ' . $or_id . ' ORDER BY `quote_id` DESC LIMIT 1' ;	
+										//}
+										//else{
+										//$queryp_ship = 'SELECT * FROM ' . $tableNamep_ship. ' WHERE quote_id = ' . $quote_id . '  ORDER BY `quote_id` DESC LIMIT 1' ;
+										//}
+										$results = $readConnection->fetchAll($queryp); 
+										//echo $count = count($results);
+										$results_ship = $readConnection->fetchAll($queryp_ship); 
+										$MarkupType = Mage::getStoreConfig('carriers/freightcenter/markup_type');
+										$MarkupPrice = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+										$Markuptypeadd = Mage::getStoreConfig('carriers/freightcenter/markup');
+										 $sandbox = Mage::getStoreConfig('carriers/freightcenter/sandbox');
+										 ?>
+										 <input type ="hidden" id="sand" value="<?php echo $sandbox; ?>" />
+										 <?php
+									foreach($results_ship as $result_ship){
+									$final_dest = $result_ship['final_dest'];
+									$carrier_name = $result_ship['carrier_name'];
+									$bookingno = $result_ship['bookingno'];
+									$status = $result_ship['status'];
+									$date_from = $result_ship['date_from'];
+									$date_to = $result_ship['date_to'];
+									$ship_product_id = $result_ship['product_id'];
+									$shipping_charge = $result_ship['shipping_charge'];
+									$grandship = $result_ship['grandship'];
+									$rateid = $result_ship['rateid'];
+									$warehouse_name = $result_ship['warehouse_name'];
+									$days = $result_ship['days'];
+									}
+										//echo '<pre>'; print_r($results);
+										$one = 200;
+										$two = 400;
+										/* if($Markuptypeadd == 'markup'){
+										 if($MarkupType == 'percent'){
+										   $gettotal_pr = ($shipping_charge *  $MarkupPrice)/100;
+										   $gettotal_shipping = $shipping_charge + $gettotal_pr;
+											}
+											else{
+											$gettotal_shipping = $shipping_charge + $MarkupPrice ; 
+											}
+											}
+								if($Markuptypeadd == 'none'){
+										 if($MarkupType == 'percent'){
+										  // $gettotal_pr = ($shipping_charge *  $MarkupPrice)/100;
+										   $gettotal_shipping = $shipping_charge;
+											}
+											else{
+											$gettotal_shipping = $shipping_charge; 
+											}
+											}
+								if($Markuptypeadd == 'discount'){
+										 if($MarkupType == 'percent'){
+										   $gettotal_pr = ($shipping_charge *  $MarkupPrice)/100;
+										   $gettotal_shipping = $shipping_charge - $gettotal_pr;
+											}
+											else{
+											$gettotal_shipping = $shipping_charge - $MarkupPrice ; 
+											}
+											} */
+									/* 	$breakout_lineitems = Mage::getStoreConfig('carriers/freightcenter/breakout_lineitems');
+										if($breakout_lineitems == '1'){	 */
+									 $ware_house = array();
+							foreach($results as $ware_result)
+							{
+							if($ship_product_id == $id){
+							$ware_house['first_name'] = $ware_result['first_name'];
+							$ware_house['short_name'] = $ware_result['short_name'];
+							$ware_house['phone'] = $ware_result['phone'];
+							$ware_house['cmpny_postcode'] = $ware_result['cmpny_postcode'];
+							$ware_house['street'] = $ware_result['street'];
+							$ware_house['city'] = $ware_result['city'];
+							$ware_house['state'] = $ware_result['state'];
+							$ware_house['last_name'] = $ware_result['last_name'];
+							$ware_house['accessorials'] = $ware_result['accessorials'];
+							$ware_house['email'] = $ware_result['email'];
+							$ware_house['hours'] = $ware_result['hours'];
+							$ware_house['cmpny_name'] = $ware_result['cmpny_name'];
+							$ware_house['pro_qty'] = $item['qty_ordered'];
+							$ware_house['pro_sku'] = $item['sku'];
+							$ware_house['pro_name'] =  $item['name'];
+							$ware_house['pro_id'] =  $frieght['entity_id'];
+							$ware_house['quote_id'] =  $quote_id;
+							$ware_house['add_firstname'] =  $firstname;
+							$ware_house['add_street'] =  $street;
+							$ware_house['add_city'] =  $city;
+							$ware_house['add_region'] =  $region;
+							$ware_house['add_country_id'] =  $country_id;
+							$ware_house['add_pincode'] =  $pincode;
+							$ware_house['carrier_name'] =  $carrier_name;
+							$ware_house['final_dest'] =  $final_dest;
+							$ware_house['shipping_charge'] = $result_ship['shipping_charge'];
+							$ware_house['grandship'] = $result_ship['grandship'];
+							$ware_house['gettotal_shipping'] = $gettotal_shipping;
+							$ware_house['warehouse_name'] = $warehouse_name ;
+							$ware_house['bookingno'] = $bookingno;
+							$ware_house['date_from'] = $date_from;
+							$ware_house['rateid'] = $rateid;
+							$ware_house['days'] = $days;
+							$newArr[] = $ware_house;
+							$ware_house = array();
+						
+							}
+							}
+							/* } 
+							else{
+							 $ware_house = array();
+							foreach($results as $ware_result)
+							{
+							//if($ship_product_id == $id){
+							$ware_house['first_name'] = $ware_result['first_name'];
+							$ware_house['short_name'] = $ware_result['short_name'];
+							$ware_house['phone'] = $ware_result['phone'];
+							$ware_house['cmpny_postcode'] = $ware_result['cmpny_postcode'];
+							$ware_house['street'] = $ware_result['street'];
+							$ware_house['city'] = $ware_result['city'];
+							$ware_house['state'] = $ware_result['state'];
+							$ware_house['last_name'] = $ware_result['last_name'];
+							$ware_house['accessorials'] = $ware_result['accessorials'];
+							$ware_house['pro_qty'] = $item['qty_ordered'];
+							$ware_house['pro_sku'] = $item['sku'];
+							$ware_house['pro_name'] =  $item['name'];
+							$ware_house['pro_id'] =  $frieght['entity_id'];
+							$ware_house['quote_id'] =  $quote_id;
+							$ware_house['add_firstname'] =  $firstname;
+							$ware_house['add_street'] =  $street;
+							$ware_house['add_city'] =  $city;
+							$ware_house['add_region'] =  $region;
+							$ware_house['add_country_id'] =  $country_id;
+							$ware_house['add_pincode'] =  $pincode;
+							$ware_house['carrier_name'] =  $carrier_name;
+							$ware_house['shipping_charge'] = $result_ship['shipping_charge'];
+							$ware_house['gettotal_shipping'] = $gettotal_shipping;
+							$ware_house['warehouse_name'] = $warehouse_name ;
+							$ware_house['bookingno'] = $bookingno;
+							$ware_house['date_from'] = $date_from;
+							$newArr[] = $ware_house;
+							$ware_house = array();
+						
+							//}
+							}
+							} */
+						//	echo '<pre>'; print_r($ware_house);  echo '</pre>'; 
+							foreach($results as $ware_result)
+							{
+							$ware_first_name = $ware_result['first_name'];
+							$ware_short_name = $ware_result['short_name'];
+							$ware_phone = $ware_result['phone'];
+							$ware_cmpny_postcode = $ware_result['cmpny_postcode'];
+							$ware_street = $ware_result['street'];
+							$ware_city = $ware_result['city'];
+							$ware_state = $ware_result['state'];
+							$ware_country_id = $ware_result['country_id'];
+							$ware_last_name = $ware_result['last_name'];
+							$accessorials = $ware_result['accessorials'];
+							$accessorials = explode(',', $accessorials);
+							//print_r($accessorials);
+							$accessorialsdisplay  = count($accessorials);
+							 $print_accessorials = '';
+							 for($modz=0;$modz<$accessorialsdisplay; $modz++){
+							 
+							//$print_accessorials ="<p>".$accessorials[$modz]."</p>" 
+							 if($accessorials[$modz] == '1'){
+							 $print_accessorials .="<p>Include A Lift Gate At Pickup</p>" ;
+							 }
+							 if($accessorials[$modz] == '2'){
+							 $print_accessorials .="<p>Is Limited Access Pickup Area</p>" ;
+							 }
+							 if($accessorials[$modz] == '3'){
+							 $print_accessorials .="<p>Is Inside Pickup</p>" ;
+							 }
+							 if($accessorials[$modz] == '4'){
+							 $print_accessorials .="<p>Call For Pickup Appointment</p>" ;
+							 }
+						}
+							
+							//echo $print_accessorials;
+							?>
+							
+							
+							
+							
+							<?php
+							
+						
+							
+							}
+							
+}
+
+}
+
+		
+
+}
+	
+	/* $ware_count = array_unique($ware_count);
+	$j=0;
+	for($j==0;$j<=2-1;$j++)
+				{
+			//	echo $ware_count[$j]."</br>";
+				
+	 $query_count = "SELECT * FROM  $tableNamep WHERE short_name = '$ware_count[$j]' ";
+	$results_count = $readConnection->fetchAll($query_count);
+	//echo '<pre>'; print_r($results_count);  echo '</pre>';
+	foreach($results_count as $result_count ){
+	//echo $ware_count_name= $result_count['short_name'];
+	}  
+	
+	} */
+//echo '<pre>'; print_r($newArr);  echo '</pre>';
+	
+	$ware_count = array_unique($ware_count);
+	$j=0;
+	for($j==0;$j<=count($ware_count)-1;$j++)
+				{
+			//	echo $ware_count[$j]."</br>";
+				
+	 $query_count = "SELECT * FROM  $tableNamep WHERE short_name = '$ware_count[$j]' ";
+	$results_count = $readConnection->fetchAll($query_count);
+	//echo '<pre>'; print_r($results_count);  echo '</pre>';
+	foreach($results_count as $result_count ){
+	$ware_count_name= $result_count['short_name'];
+	 $i=0;
+	
+	for($i==0;$i<=count($ware_count)-1;$i++)
+	{
+	if($ware_count_name == $newArr[$i]['short_name']){
+	
+							$ware_first_name = $newArr[$i]['first_name'];
+							$ware_short_name = $newArr[$i]['short_name'];
+							$ware_phone = $newArr[$i]['phone'];
+							$ware_cmpny_postcode = $newArr[$i]['cmpny_postcode'];
+							$ware_street = $newArr[$i]['street'];
+							$ware_city = $newArr[$i]['city'];
+							$ware_state = $newArr[$i]['state'];	
+							$ware_country_id = $newArr[$i]['country_id'];
+							$ware_last_name = $newArr[$i]['last_name'];
+							$ware_email = $newArr[$i]['email'];
+							$ware_hours = $newArr[$i]['hours'];
+							$ware_comp_name = $newArr[$i]['cmpny_name'];
+							$qty_ordered = $newArr[$i]['pro_qty'];
+							$sku = $newArr[$i]['pro_sku'];
+							$pro_name = $newArr[$i]['pro_name'];
+							$or_id = $newArr[$i]['pro_id'];
+							$quote_id = $newArr[$i]['quote_id'];
+							$firstname = $newArr[$i]['add_firstname'];
+							$street = $newArr[$i]['add_street'];
+							$rateid = $newArr[$i]['rateid'];
+							$city = $newArr[$i]['add_city'];
+							$region = $newArr[$i]['add_region'];
+							$country_id = $newArr[$i]['add_country_id'];
+							$pincode = $newArr[$i]['add_pincode'];
+							$carrier_name = $newArr[$i]['carrier_name'];
+							$final_dest = $newArr[$i]['final_dest'];
+							$shipping_charge = $newArr[$i]['shipping_charge'];
+							$grandship = $newArr[$i]['grandship'];
+							$gettotal_shipping = $newArr[$i]['gettotal_shipping'];
+							$warehouse_name = $newArr[$i]['warehouse_name'];
+							$bookingno = $newArr[$i]['bookingno'];
+							$days = $newArr[$i]['days'];
+							$date_from = $newArr[$i]['date_from'];
+							$accessorials = $newArr[$i]['accessorials'];
+							$accessorials = explode(',', $accessorials);
+							//print_r($accessorials);
+							$accessorialsdisplay  = count($accessorials);
+							 $print_accessorials = '';
+							 for($modz=0;$modz<$accessorialsdisplay; $modz++){
+							 
+							//$print_accessorials ="<p>".$accessorials[$modz]."</p>" 
+							 if($accessorials[$modz] == '1'){
+							 $print_accessorials .="<p>Include A Lift Gate At Pickup</p>" ;
+							 }
+							 if($accessorials[$modz] == '2'){
+							 $print_accessorials .="<p>Is Limited Access Pickup Area</p>" ;
+							 }
+							 if($accessorials[$modz] == '3'){
+							 $print_accessorials .="<p>Is Inside Pickup</p>" ;
+							 }
+							 if($accessorials[$modz] == '4'){
+							 $print_accessorials .="<p>Call For Pickup Appointment</p>" ;
+							 }
+						}
+							$pr_new = array();
+						foreach($new_product_count as $value){
+						//print_r($value);
+				
+						if($value[3] == $ware_short_name ) {
+						//print_r($val);
+						$pr_new['qty'] = $value['0'];
+						$pr_new['sku'] = $value['1'];
+						$pr_new['name'] = $value['2'];
+						}
+						}
+						//echo '<pre>'; print_r($pr_new); echo '<pre>';
+						
+						
+						
+					
+						?>
+						
+						
+						
+						<?php //if( $final_dest != ''){ ?>
+							<?php //if($bookingno > 0 && $ware_first_name == $warehouse_name){
+							?>
+						<!--	<ul class="messages_ship" style="display:none;"><li class="success-msg" style="padding: 10px;"><ul><li><span id="append_ware_ship" style="margin-left:30px;">shipment successfully canceled for:</span></li></ul></li></ul> -->
+							
+							<?php// } else { ?>
+							<!--<ul class="messages" style="display:block"><li class="success-msg"><ul><li><span id="append_ware">Shipment successfully booked for:</span></li></ul></li></ul> -->
+							
+							<?php //} 
+						//	} ?>
+						
+						
+						
+						
+						
+						
+						
+						
+						<div style="width:800px; float:left; margin-top: 5px; " id="<?php echo $or_id; ?>">
+							<div style="width: 750px; background: none repeat scroll 0% 0% rgb(111, 137, 146); text-align: left; padding: 1px 0px 1px 1px; height: 21px; border: 1px solid rgb(251, 145, 62);">
+							<h4 style="color:white; float:left">Shipping From: <?php echo $ware_short_name; ?></h4>
+							<h4 style="color:white; float:right; margin-right:10px;" id="quote<?php echo $or_id; ?>"> <?php 
+							 if($final_dest != ''){
+							if($bookingno > 0 && $ware_first_name == $warehouse_name){ ?> Quote ID: <?php echo $bookingno;?> - Booked<?php }  else{
+							 
+							 $quote_id;  } }
+							
+							 ?>
+							 </h4>
+							</div>
+							<div style="width: 750px; border: 1px solid rgb(214, 214, 214); background: none repeat scroll 0% 0% rgb(250, 250, 250);float: left;" class="admin_view">
+							<div style=" border-bottom: 1px solid hsl(0, 0%, 84%); height: 194px;  margin-bottom: 10px; margin-left: 50px; margin-right: 50px;">
+							<div style="float:left; margin-left:20px;">
+							<h4>From:</h4>
+							<p><h4><?php echo $ware_first_name; ?></h4></p>
+							<p><?php echo $ware_street; ?> ,<?php echo $ware_city; ?></p>
+							<p><?php echo $ware_state; ?>, <?php echo $ware_country_id; ?> <?php echo $ware_cmpny_postcode; ?></p>
+							<p></p>
+							<div style="float: left; ">
+							<p><?php echo $print_accessorials; ?></p></div>
+							</div>
+							<div style="float:right; margin-right:20px;">
+							<h4>To:</h4>
+							<p><h4><?php echo $firstname; ?></h4></p>
+							<p><?php echo $street; ?> ,<?php echo $city; ?></p>
+							<p><?php echo $region; ?>, <?php echo $country_id; ?> <?php echo $pincode; ?></p>
+							<p></p>
+							<p><?php //echo $print_accessorials; ?></p>
+							</div>
+							</div>
+							<div style="float: left; height: 170px; border-bottom: 1px solid rgb(213, 213, 213); margin-bottom: 20px; width: 550px; margin-left: 50px; margin-right: 50px;">
+							<div  style="align-self: center; "><p  style="float: left; font-weight: bold;">CARRIER:</p> <span style="margin-left:30px;"><?php echo $carrier_name;?></span></div>
+							<div  style="align-self: center; "><p  style="float: left; font-weight: bold;   margin-left: -26px;">PICKUP DATE:</p>
+												<input type="hidden" id="hidden_id" value="<?php echo $or_id; ?>" />
+												<span style="margin-left:30px;"><label for="from"></label>
+											<?php if($bookingno > 0 && $ware_first_name == $warehouse_name){
+							?>
+							<input type="text"  readonly value="<?php echo $date_from; ?>" >
+							<?php }else { ?>
+							<input type="text" class="from" id="from<?php echo $or_id; ?>" name="from">
+							<img  src="<?php echo $hello; ?>/skin/adminhtml/default/default/images/grid-cal.gif" alt="" style="margin-top: 3px; position: absolute; margin-left: 5px;" /><?php } ?>
+							<input type="hidden" class="to" name="to" id="to<?php echo $or_id; ?>">
+							</span>
+							</div> 
+							<div  style="align-self: center; "><p  style="float: left; font-weight: bold;  margin-left: -31px;">Estimated Transit Time:</p> <span style="margin-left:30px;"><?php if($days > 0){ echo $days;}else{ echo 2; } ?> Days</span></div>
+							<div  style="align-self: center; "><p  style="float: left; font-weight: bold;  margin-left: 16px;">COST:</p> <span style="margin-left:30px;">&#36;<?php echo $grandship = number_format($grandship, 2, '.', ',');?></span></div>
+							<div  style="align-self: center; "><p  style="float: left; font-weight: bold;">CHARGE:</p> <span style="margin-left:30px;">&#36;<?php echo $shipping_charge = number_format($shipping_charge, 2, '.', ',');?></span></div>
+							</div>
+							<!--<div   style="float: left; margin-left: 50px; height: auto; border-bottom: 1px solid rgb(213, 213, 213); margin-bottom: 20px; width: 550px;">
+							<div style="float:left;">	
+							<h4 style=" text-transform: uppercase;">items ordered from this warehouse: (<?php //echo round($qty_ordered); ?> ITEMS)</h4>
+							</div>
+							<table  style="width:588px">
+							<tr>
+							  <th>Product</th>
+							  <th>SKU</th>		
+							  <th>Quantity</th>
+							</tr>
+							<?php  ?>
+							<tr>
+							  <td><?php //echo $pr_new['name']; ?></td>
+							  <td><?php //echo $pr_new['sku']; ?></td>		
+							  <td><?php //echo round($pr_new['qty']); ?></td>
+							</tr>
+							<?php  ?>
+							
+							</table>
+							
+							</div> -->
+							<?php if( $final_dest != ''){ ?>
+								<?php if($bookingno > 0 && $ware_first_name == $warehouse_name){
+					 }else { ?>
+								<div id="accept<?php echo $or_id; ?>" style="float: left; margin-left: 50px; height: auto; border-bottom: 1px solid rgb(213, 213, 213); margin-bottom: 20px; width: 550px;">
+							<input type="checkbox" id="accept_term<?php echo $or_id; ?>" value="1" />
+							<span>I Agree to the FreightCenter <a href="http://www.freightcenter.com/forms/terms%20and%20conditions/terms%20and%20conditions.pdf" target="_blank" style="text-decoration: none; font-weight: bold; color: rgb(26, 107, 187); ">Terms & Conditions</a></span>
+							</div><?php } } ?>
+							<div style="float: right; width: 210px; display:none;" id="get_rate_ajax<?php echo $or_id; ?>">
+							
+							<input type="hidden" value = "<?php echo $or_id; ?>" id="product_id"/>
+					
+							</div>
+							<div id="ship_cancel_new<?php echo $or_id; ?>"></div>
+							<?php if( $final_dest != ''){ ?>
+							<?php if($bookingno > 0 && $ware_first_name == $warehouse_name){
+							?>
+							<div style="float: right; margin-right: 20px; margin-bottom: 10px;" id="ship_cancel<?php echo $or_id; ?>">
+							<div  style=" background-color: hsl(26, 88%, 46%); border: 1px solid hsl(17, 100%, 27%);   border-radius: 5px; float: right;  margin-right: 20px;    padding: 2px; text-align: center; width: 100px;   color: hsl(0, 0%, 100%); cursor:pointer" onclick="cancel_api('<?php echo $bookingno; ?>', '<?php echo $ware_short_name; ?>', '<?php echo $or_id; ?>', '<?php echo $quote_id; ?>'); ">Cancel Booking</div>
+							<div style="float: right; display: none; height: 8px; margin-top: 4px;" class="pls-wait<?php echo $or_id; ?>">
+							
+							
+							
+                             <span id="loader_loctype<?php echo $or_id; ?>">
+                                <img class="v-middle" title="Loading Booking..." alt="Loading carrier rates..." src="http://staging.brstdev.com/magento/skin/frontend/default/default/images/opc-ajax-loader.gif">
+                            </span>
+                           </div>
+						   <script>
+						   jQuery.noConflict();
+						  jQuery( document ).ready(function() {
+								BOLcheck_first('<?php echo $bookingno; ?>', '<?php echo $or_id; ?>');
+							});
+						   
+						   </script>
+						   <?php if($sandbox == '1'){ ?>
+						   <div id="withBol<?php echo $or_id; ?>" style="display:none; background-color: hsl(26, 88%, 46%); border: 1px solid hsl(17, 100%, 27%);   border-radius: 5px; float: right;  margin-right: 20px;    padding: 2px; text-align: center; width: 100px;   color: hsl(0, 0%, 100%); cursor:pointer"><a style="text-decoration: none; color: white;" target="_blank" href="https://sandbox.freightcenter.com/DownloadBol.aspx?qid=<?php echo $bookingno; ?>">Download BOL</a></div>
+							<?php } else { ?>
+							<div id="withBol<?php echo $or_id; ?>" style="display:none; background-color: hsl(26, 88%, 46%); border: 1px solid hsl(17, 100%, 27%);   border-radius: 5px; float: right;  margin-right: 20px;    padding: 2px; text-align: center; width: 100px;   color: hsl(0, 0%, 100%); cursor:pointer"><a style="text-decoration: none; color: white;" target="_blank" href="https://www.freightcenter.com/DownloadBol.aspx?qid=<?php echo $bookingno; ?>">Download BOL</a></div> <?php } ?></div>
+							<?php }  else{ ?>
+							<div id = "ajax_call<?php echo $or_id; ?>" style=" background-color: hsl(26, 88%, 46%); border: 1px solid hsl(17, 100%, 27%);   border-radius: 5px; float: right;  margin-right: 20px;  margin-top: 20px;  padding: 2px; text-align: center; width: 100px;   color: hsl(0, 0%, 100%); cursor:pointer" onclick="AdminGetRate('<?php echo $ware_first_name; ?>','<?php echo $ware_last_name; ?>','<?php echo $ware_phone; ?>','<?php echo $ware_cmpny_postcode; ?>','<?php echo $ware_street; ?>','<?php echo $ware_city; ?>','<?php echo $ware_state; ?>','<?php echo $ware_country_id; ?>','<?php echo $firstname; ?>','<?php echo $lastname; ?>', '<?php echo $telephone; ?>', '<?php echo $pincode; ?>', '<?php echo $street; ?>', '<?php echo $city;?>', '<?php echo $region; ?>', '<?php echo $country_id; ?>', '<?php echo $quote_id; ?>', '<?php echo $or_id; ?>', '<?php echo $rateid; ?>', '<?php echo $ware_short_name; ?>', '<?php echo $ware_hours; ?>', '<?php echo $ware_email; ?>', '<?php echo $ware_comp_name; ?>', '<?php echo $email; ?>', '<?php echo $company; ?>');">Book Freight</div>
+							<div style="display: none;  float: right;   height: 35px;   margin-top: 22px;" class="pls-wait<?php echo $or_id; ?>">
+							
+							
+							
+                             <span id="loader_loctype<?php echo $or_id; ?>">
+                                <img class="v-middle" title="Loading Booking..." alt="Loading carrier rates..." src="http://staging.brstdev.com/magento/skin/frontend/default/default/images/opc-ajax-loader.gif">
+                            </span>
+                           </div>
+							</div>
+							</div>
+						
+						<?php }
+						}
+						}
+						
+						}  
+	
+	}
+	}
+						
+						
+?>							<div style="width:600px; float:left; margin-top: 5px; display:none;" id="<?php echo $or_id; ?>">
+							<div style="width: 550px; background: none repeat scroll 0% 0% rgb(111, 137, 146); text-align: left; padding: 1px 0px 1px 1px; height: 21px; border: 1px solid rgb(251, 145, 62);">
+							<h4 style="color:white;">Book Order On Freight</h4>
+							</div>
+							<div style="width: 550px; border: 1px solid rgb(214, 214, 214); background: none repeat scroll 0% 0% rgb(250, 250, 250);float: left;" class="admin_view">
+							<div style="float: left; width: 310px;">
+							<!--<div>Name: <?php //echo $item->getName();  ?></div>
+							<div>Product ID: <?php //echo $or_id;?></div>
+							<div>Product SKU: <?php //echo $product_sku;?></div>
+							<div>Product Price: <?php //echo $product_price;?></div> -->
+							<div>Product WareHouse: <?php echo $ware_result['cmpny_name'];?></div>
+							<div>Origin Location Type: <?php echo $ware_result['location_type'];?></div>
+							<div>Destination Location Type: <?php echo $final_dest;?></div>
+							<div>Carrier: <?php echo $carrier_name;?></div>
+							<?php $warehouse_location_type = str_replace(' ', '',  $ware_result['location_type']); ?>
+							<div>WareHouse PostCode: <?php echo $ware_result['cmpny_postcode'];?></div>
+							<div>Shipping Charges: <?php echo $result_ship['shipping_charge'];?></div>
+											</div>
+							<div style="float: right; width: 210px; display:none;" id="get_rate_ajax">
+							
+							
+					
+							</div>
+							<?php if($bookingno > 0){
+							?>
+							<div class="ajax-result" style="" id="ajax_result<?php print $id; ?>">			
+								<h4><?php echo $status; ?></h4>
+							   <h4>Booking Id: <?php echo $bookingno; ?></h4>
+							   
+							   <span>Date Between:
+					<label for="from">From</label>
+					<span><?php echo  $date_from; ?></span>
+					<label for="to">To</label>
+					<span><?php echo  $date_to; ?></span>
+					</div>
+							</span> 
+								
+							</div>
+														<?php }  else{ ?>
+							<div id = "ajax_call<?php echo $or_id; ?>" style=" background-color: hsl(26, 88%, 46%); border: 1px solid hsl(17, 100%, 27%);   border-radius: 5px; float: right;  margin-right: 20px;  margin-top: 20px;  padding: 2px; text-align: center; width: 100px;   color: hsl(0, 0%, 100%); cursor:pointer" onclick="AdminGetRate('<?php echo $ware_first_name; ?>','<?php echo $ware_last_name; ?>','<?php echo $ware_phone; ?>','<?php echo $ware_cmpny_postcode; ?>','<?php echo $ware_street; ?>','<?php echo $ware_city; ?>','<?php echo $ware_state; ?>','<?php echo $ware_country_id; ?>','<?php echo $firstname; ?>','<?php echo $lastname; ?>', '<?php echo $telephone; ?>', '<?php echo $pincode; ?>', '<?php echo $street; ?>', '<?php echo $city;?>', '<?php echo $region; ?>', '<?php echo $country_id; ?>', '<?php echo $quote_id; ?>');">GetNewRates</div>
+							<div style="display: none;  float: right;   height: 35px;  margin-right: 10px; margin-top: 22px;" class="pls-wait<?php echo $or_id; ?>">
+							
+							
+							<input type="hidden" value = "<?php echo $or_id; ?>" id="product_id"/>
+                             <span id="loader_loctype<?php echo $or_id; ?>">
+                                <img class="v-middle" title="Loading Booking..." alt="Loading carrier rates..." src="http://staging.brstdev.com/magento/skin/frontend/default/default/images/opc-ajax-loader.gif">
+                            </span>
+                           </div>
+							
+							<span>Date Select:
+					<label for="from">From</label>
+<input type="text" id="from" name="from">
+<label for="to">To</label>
+<input type="text" id="to" name="to">
+
+							</span> 
+							
+						
+							</div>
+				<?php } ?>					
+		
+<?php 
+									
+?> 	
+
+<script type="text/javascript">
+
+jQuery.noConflict();
+function ajaxcallnewfrieght( id, pr, qote, order_id, grand, proprice)
+{
+	//alert(pr);
+	//alert(id);
+				ajaxresponse = false;
+                 var valMy = pr;
+				var di = id;
+				var quote = qote;
+				var order_id = order_id;
+				var grandtotal = grand;
+				var product_price = proprice;
+				
+				parameters={ diq:di, val:valMy, qtid:quote, order_id:order_id, grandtotal:grandtotal, product_price:product_price };
+				var url = '<?php echo $this->getUrl('freight/index/save'); ?>';
+                new Ajax.Request(url,{
+                parameters:parameters,
+                onComplete: function (transport){
+      
+                     //var response = transport.responseText.evalJSON();
+					// alert(response);
+					}
+					});
+
+}
+function AdminGetRate(ware_fname, ware_lname, warephone, warepostcode, warestreet, warecity, warestate, warecountry, fname, lname, telephone, pincode, street, city, region, country, quote_id, hidden_id, rateid, warehousename, hour, ware_email, ware_comp_name, email, company)
+{
+
+	/* alert(url+','+product_id+','+des+','+nmfc+','+flen+','+fwidth+','+fheight+','+fclass+','+warecode+','+wareloctype) */
+	var agent = jQuery("#agent").val();
+
+	var product_id = jQuery("#product_id").val();
+	//var hidden_id = jQuery("#hidden_id").val();
+	//alert("#from"+hidden_id);
+	var url = jQuery("#url_api").val();
+	var from = jQuery("#from"+hidden_id).val();
+	//alert(from);
+	var arr = from.split('/');
+	var date_from = arr[2] + "-"+ arr[0]+"-"+arr[1];
+	var to = jQuery("#to"+hidden_id).val();
+	var arr = to.split('/');
+	var date_to = arr[2] + "-"+ arr[0]+"-"+arr[1];
+	if(from == '' ){
+	alert('Please Enter the date');
+	return false;
+	}
+	if(jQuery("#accept_term"+hidden_id).prop('checked') == false){
+	alert("Please Accept the Terms and Conditions");
+	return false;
+	}
+	jQuery('.pls-wait'+hidden_id).show();
+	jQuery.ajax({ 
+				type:'get',
+				url: url+'api_check.php',
+				dataType: "html",
+				data: {'date_from':date_from, 'date_to':date_to, 'ware_fname':ware_fname, 'ware_lname':ware_lname, 'warephone':warephone, 'warepostcode':warepostcode, 'warestreet':warestreet, 'warecity':warecity, 'warestate':warestate, 'warecountry':warecountry, 'fname':fname, 'lname':lname, 'telephone':telephone, 'pincode':pincode, 'street':street, 'city':city, 'region':region, 'country':country, 'quote_id':quote_id, 'product_id':hidden_id, 'rateid':rateid, 'agent':agent, 'hour':hour, 'ware_email':ware_email, 'ware_comp_name':ware_comp_name, 'email':email, 'company':company},
+				success:function(value) { 
+				//alert(value);
+				var value = value.trim();
+				//var value = jQuery.isNumeric(value);
+				if(jQuery.isNumeric(value)){
+				BOLcheck(value, hidden_id);
+				//return BOLcheck(value);
+				
+				jQuery('.pls-wait'+hidden_id).hide();
+				jQuery('#ajax_call'+hidden_id).hide();
+				jQuery('#accept'+hidden_id).hide();
+				//jQuery('#get_rate_ajax'+hidden_id).show();
+				jQuery( "#append_w" ).remove();
+				jQuery('<span>')
+				.attr('id', 'append_w')
+				.append(warehousename)
+				.appendTo('#append_ware')
+				jQuery('.messages').show();
+				jQuery('#ship_cancel_new'+hidden_id).show();
+				 document.getElementById('get_rate_ajax'+hidden_id).innerHTML=value;
+				/*  setTimeout(function(){
+				   window.location.reload(1);
+				}, 3000); */
+				 
+				//alert(value);
+				jQuery('<div>') 
+			  .attr('id','removable_app') 
+			  .attr('class','new_class') 
+			  .attr('onclick','cancel_api(\''+value+'\',\''+warehousename+'\',\''+hidden_id+'\',\''+quote_id+'\')')
+			  .append('Cancel Booking')
+			   .appendTo('#ship_cancel_new'+hidden_id)
+			 
+			  jQuery('<span>') 
+			  .append(' Quote ID:' +value+' - Booked')
+			  .appendTo('#quote'+hidden_id)
+			  
+			  jQuery('.messages_error').hide();
+			 jQuery('.messages_ship').hide();
+				jQuery('.messages_ship_error').hide();
+				
+			  
+				}				
+				else{
+				jQuery('.pls-wait'+hidden_id).hide();
+				jQuery( "#append_w_error" ).remove();
+				jQuery('<span>')
+				.attr('id', 'append_w_error')
+				.append(warehousename+':'+value)
+				.appendTo('#append_ware_error')
+				jQuery('.messages_error').show();
+				jQuery('.messages_ship').hide();
+				jQuery('.messages').hide();
+				jQuery('.messages_ship_error').hide();
+				
+				}
+}				
+			});
+
+
+}
+function BOLcheck(value, hidden_id){
+//alert(value);
+var url = jQuery("#url_api").val();
+var sand = jQuery("#sand").val();
+if(sand == '1'){
+sand = 'https://sandbox.freightcenter.com/DownloadBol.aspx?qid='+value;
+}
+else{
+sand = 'https://www.freightcenter.com/DownloadBol.aspx?qid='+value;
+}
+  jQuery.ajax({ 
+							    
+				type:'get',
+				url: url+'BOLCheck.php',
+				dataType: "html",
+				data: {'bookingno':value},
+				success:function(value) {				
+				var value = value.trim();
+				if(value == 'true'){
+				jQuery('.new_class_bol').hide();
+				jQuery('#withBol'+hidden_id).hide();
+				//alert('hide');
+				jQuery('.new_class_bol').show();
+				//alert('show');
+				 jQuery('<div>')
+			  .attr('id','removabl') 
+			   .append(
+				jQuery('<a>') 
+			.attr('href',sand)
+			.attr('target', '_blank')
+			.attr('class','new_class_bol')
+			.append('Download BOL')	 
+			  )
+			  .appendTo('#ship_cancel_new'+hidden_id)
+			  jQuery('#withBol'+hidden_id).show();
+				
+				}
+				else{
+				jQuery('.new_class_bol').hide();
+				jQuery('#withBol'+hidden_id).hide();
+			  
+				}
+				}	 
+			});
+
+}
+
+function BOLcheck_first(value, hidden_id){
+//alert(value);
+var url = jQuery("#url_api").val();
+  jQuery.ajax({ 
+							    
+				type:'get',
+				url: url+'BOLCheck.php',
+				dataType: "html",
+				data: {'bookingno':value},
+				success:function(value) {				
+				var value = value.trim();
+				//alert(value);
+				if(value == 'true'){
+				jQuery('.new_class_bol').show();
+				//alert('show');
+				 jQuery('#withBol'+hidden_id).show();
+				
+				//alert('hide');
+				
+				}
+				else{
+				jQuery('#withBol'+hidden_id).hide();
+			  
+				}
+				}	 
+			});
+
+}
+
+ function JQueryConfirm(){
+
+          
+        var msg = 'Confirmation Msg.';
+        var div = jQuery("<div>" + msg + "</div>");
+        div.dialog({
+            title: "Confirm",
+            buttons: [
+                        {
+                            text: "Yes",
+                            click: function () {
+                               alert('yeah');
+                            }
+                        },
+                        {
+                            text: "No",
+                            click: function () {
+                                div.dialog("close");
+                            }
+                        }
+                    ]
+        });
+    
+        }
+function cancel_api(bookingno, warehousename, product_id, quote_id){
+var url = jQuery("#url_api").val();
+	var agent = jQuery("#agent").val();
+
+var msg = 'Are you sure you want to cancel this shipment?';
+        var div = jQuery("<div>" + msg + "</div>");
+        div.dialog({
+            title: "Confirm",
+            buttons: [
+                        {
+						
+						
+                            text: "Yes",
+                            click: function () {
+							div.dialog("close");
+							jQuery('.pls-wait'+product_id).show();
+                               jQuery.ajax({ 
+							    
+				type:'get',
+				url: url+'api_cancel.php',
+				dataType: "html",
+				data: {'bookingno':bookingno, 'product_id':product_id, 'quote_id':quote_id, 'agent':agent},
+				success:function(value) { 
+				var value = value.trim();
+				if(value == 'SUCCESS'){
+				jQuery('#ship_cancel'+product_id).hide();
+				jQuery('.pls-wait'+product_id).hide();
+				jQuery('#quote'+product_id).hide();
+				jQuery( "#append_w_ship" ).remove();
+				jQuery('<span>')
+				.attr('id', 'append_w_ship')
+				.append(warehousename)
+				.appendTo('#append_ware_ship')
+				jQuery('.messages_ship').show();
+				jQuery('.messages').hide();
+				jQuery('.messages_error').hide();
+				// document.getElementById('get_rate_ajax'+hidden_id).innerHTML=value;
+				// location.reload();
+				 
+				//alert(value);
+				
+				jQuery('.messages_ship_error').hide();
+				jQuery('#ship_cancel_new'+product_id).hide();
+				}
+				else if(value == 'WARNING'){
+				jQuery('#ship_cancel'+product_id).hide();
+				jQuery('.pls-wait'+product_id).hide();
+				jQuery('#quote'+product_id).hide();
+				jQuery( "#append_w_ship_w" ).remove();
+				jQuery('<span>')
+				.attr('id', 'append_w_ship_w')
+				.append("Thank you for submitting your request for shipment "+bookingno+". We are now reviewing your information and will back to you shortly with additional details.If you have any further questions, please contact our customer service department at 800-716-7608 ext 1084")
+				.appendTo('#append_ware_ship_w')
+				jQuery('.messages_ship_w').show();
+				jQuery('.messages').hide();
+				jQuery('.messages_error').hide();
+				// document.getElementById('get_rate_ajax'+hidden_id).innerHTML=value;
+				// location.reload();
+				 
+				//alert(value);
+				
+				jQuery('.messages_ship_error').hide();
+				jQuery('#ship_cancel_new'+product_id).hide();
+				
+				}
+				else{
+				jQuery('.pls-wait'+product_id).hide();
+				jQuery( "#append_w_ship_error" ).remove();
+				jQuery('<span>')
+				.attr('id', 'append_w_ship_error')
+				.append(warehousename+':'+value)
+				.appendTo('#append_ware_ship_error')
+				jQuery('.messages_ship_error').show();
+				jQuery('.messages_ship').hide();
+				jQuery('.messages').hide();
+				jQuery('.messages_error').hide();
+				}
+				}	 
+			});
+                            }
+                        },
+                        {
+                            text: "No",
+                            click: function () {
+                                div.dialog("close");
+                            }
+                        }
+                    ]
+        });
+
+/* jQuery.ajax({ 
+				type:'get',
+				url: url+'api_cancel.php',
+				dataType: "html",
+				data: {'bookingno':bookingno, 'product_id':product_id, 'quote_id':quote_id},
+				success:function(value) { 
+				if(value = 'SUCCESS'){
+				jQuery('#ship_cancel'+product_id).hide();
+				jQuery('.pls-wait'+product_id).hide();
+				jQuery('#quote'+product_id).hide();
+				jQuery( "#append_w_ship" ).remove();
+				jQuery('<span>')
+				.attr('id', 'append_w_ship')
+				.append(warehousename)
+				.appendTo('#append_ware_ship')
+				jQuery('.messages_ship').show();
+				// document.getElementById('get_rate_ajax'+hidden_id).innerHTML=value;
+				// location.reload();
+				 
+				//alert(value);
+				}
+				else{
+				jQuery( "#append_w_ship_error" ).remove();
+				jQuery('<span>')
+				.attr('id', 'append_w_ship_error')
+				.append(warehousename)
+				.appendTo('#append_ware_ship_error')
+				jQuery('.messages_ship_error').show();
+				}
+				}	 
+			});
+ */
+
+}
+ jQuery(function() {
+ 
+		jQuery( ".from" ).datepicker({
+		minDate: 0 ,
+		defaultDate: "+1w",
+		changeMonth: true,
+		numberOfMonths: 1,
+		onClose: function( selectedDate ) {
+		jQuery( ".to" ).datepicker( "option", "minDate", selectedDate );
+		}
+		});
+
+		jQuery( ".to" ).datepicker({
+defaultDate: "+1w",
+changeMonth: true,
+numberOfMonths: 1,
+onClose: function( selectedDate ) {
+jQuery( ".from" ).datepicker( "option", "maxDate", selectedDate );
+}
+});
+});
+
+
+</script>						
+
+

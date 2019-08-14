@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<layout>
+    <adminhtml_sales_order_view>
+        <reference name="sales_order_tabs">
+            <action method="addTab">
+                <name>order_view_tab_frieghtadmin</name>
+                 <block>frieghtadmin/adminhtml_order_view_tab_frieghtadmin</block>
+            </action>
+        </reference>
+</adminhtml_sales_order_view>
+</layout>

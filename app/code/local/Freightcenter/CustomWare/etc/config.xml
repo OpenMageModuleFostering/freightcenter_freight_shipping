@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Freightcenter_CustomWare>
+            <version>1.0.0</version>
+        </Freightcenter_CustomWare>
+    </modules>
+     
+    <global>
+        <helpers>
+            <freightcenter_customware>
+                <!-- This is where we define our helper directory -->
+                <class>Freightcenter_CustomWare_Helper</class>
+            </freightcenter_customware>
+        </helpers>
+                    
+        <blocks>
+            <freightcenter_customware>
+                <!-- Set a block definition and lookup directory -->
+                <class>Freightcenter_CustomWare_Block</class>
+            </freightcenter_customware>
+        </blocks>
+         
+        <models>
+            <freightcenter_customware>
+                <!-- This is where we define our model directory -->
+                <class>Freightcenter_CustomWare_Model</class>
+                <!-- Define a resource to create a custom table -->
+                <resourceModel>freightcenter_customware_mysql4</resourceModel>
+            </freightcenter_customware>
+             
+            <!-- Here's our resource model we'll use to create a database table -->
+            <freightcenter_customware_mysql4>
+                <class>Freightcenter_CustomWare_Model_Mysql4</class>
+                <entities>
+                    <!-- Let's define our table, we'll call it with the baz name, but the real table is foo_bar_baz -->
+                    <!-- After we define our entity, we can call it with our model by calling foo_bar/baz -->
+                    <collect>
+                        <table>brst_ship_warehouses</table>
+                    </collect>
+                </entities>
+            </freightcenter_customware_mysql4>
+        </models>
+         
+        <!-- And finally we define our resource setup script -->
+        <resources>
+            <freightcenter_customware_setup>
+                <setup>
+                    <module>Freightcenter_CustomWare</module>
+                </setup>
+            </freightcenter_customware_setup>
+        </resources>
+    </global>
+     
+    <admin>
+        <routers>
+            <adminhtml>
+                <args>
+                    <!-- This is how we load our Adminhtml controllers -->
+                    <modules>
+                        <Freightcenter_CustomWare before="Mage_Adminhtml">Freightcenter_CustomWare_Adminhtml</Freightcenter_CustomWare>
+                    </modules>
+                </args>
+            </adminhtml>
+        </routers>
+    </admin>
+     
+    <adminhtml>
+        <layout>
+            <updates>
+                <freightcenter_customware>
+                    <!--
+                    We again keep a nice naming convention and make our module upgrade proof by placing it in a separate folder
+                    - Since we are in the adminhtml node, this will look for the XML file in the app/design/adminhtml/default/default root folder
+                    -->
+                    <file>freightcenter/customware.xml</file>
+                </freightcenter_customware>
+            </updates>
+        </layout>
+    </adminhtml>
+</config>

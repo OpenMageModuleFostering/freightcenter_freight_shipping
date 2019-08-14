@@ -1,0 +1,2096 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category    design
+ * @package     base_default
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+
+?>
+<style>
+.pro_list {
+	font-size: 15px;
+	list-style: disc outside none;
+}
+.car_show {
+	font-weight: bold;
+}
+hr {
+	color: #CCC;
+	background-color: #CCC;
+	border: none;
+	height: 2px;
+	margin: 20px 0 20px 0;
+}
+.freight_box ul {
+	margin: 10px 0 20px 46px;
+	padding: 0 0 0 3px;
+	list-style-type: square;
+}
+.freight_box {
+	padding: 0 20px 0 20px;
+}
+input[type="checkbox"] {
+	margin: 0 3px 0 0;
+}
+.accessories label {
+	margin: 0 16px 0 0;
+}
+.sp-methods{margin:0 0 0 20px;}
+</style>
+<?php
+/** @var $this Mage_Checkout_Block_Onepage_Shipping_Method_Available */
+?>
+<?php
+$_shippingRateGroups = $this->getShippingRates();
+?>
+<?php
+if (!$_shippingRateGroups):
+?>
+<title></title>
+<p>
+	<?php
+    echo $this->__('Sorry, no quotes are available for this order at this time.aa');
+?>
+</p>
+<?php
+else:
+    $address      = Mage::getSingleton('checkout/session')->getQuote()->getShippingAddress()->getpostcode();
+    $home_url     = Mage::helper('core/url')->getHomeUrl();
+    $home         = explode("index.php", $home_url);
+    //echo '<pre>'; print_r($home);exit;
+    $hello        = $home[0];
+    $current_page = $hello . 'api_check_new.php';
+    $remo         = $hello . 'RemoveFreight.php';
+    $session      = Mage::getSingleton('checkout/session');
+    $quote_id     = $session->getQuoteId();
+    $items        = $session->getQuote()->getAllItems();
+    //echo '<pre>';print_r($items); echo '</pre>';	
+?>
+<input type="hidden" value="<?php
+    echo $address;
+?>" name="<?php
+    echo $address;
+?>" id="postaladdress" />
+<input type="hidden" value="<?php
+    echo $current_page;
+?>" name="<?php
+    echo $current_page;
+?>" id="url"/>
+<input type="hidden" value="<?php
+    echo $remo;
+?>" name="<?php
+    echo $remo;
+?>" id="remo"/>
+<?php
+    $allids        = '';
+    $myarray       = array();
+    $non_freight   = array();
+    $cart_products = array();
+    foreach ($items as $item) {
+        $id                 = $item->getProductId();
+        $qtyordered         = $item->getQty();
+        $cart_products[$id] = $qtyordered;
+        $product            = Mage::getModel('catalog/product')->load($id);
+        $ship_via_freight   = $product->getData('ship_via_freight');
+        if ($ship_via_freight != 1) {
+            $non_freight[] = $product;
+?>
+<?php
+        } else {
+            $myarray[] = $product;
+            $allids .= $id . ' ' . $qtyordered . ';';
+        }
+    }
+    
+    $subtotal = Mage::helper('checkout/cart')->getQuote()->getSubtotal();
+	$freightuser       = Mage::getStoreConfig('carriers/freightcenter/freightuser');
+	$freightpwd       = Mage::getStoreConfig('carriers/freightcenter/freightpwd');
+    
+    $discount = Mage::getStoreConfig('carriers/freightcenter/discount');
+    if ($discount == '1') {
+        $discount_amount = Mage::getStoreConfig('carriers/freightcenter/discount_amount');
+        $discount_price  = Mage::getStoreConfig('carriers/freightcenter/discount_price');
+        
+    } else {
+        $discount_amount = $subtotal + 100;
+        $discount_price  = '0';
+    }
+    
+    
+    //echo "<pre>";print_r($myarray);exit;
+    /* hide shipping methods */
+    if ($non_freight == NULL) {
+        $ship_style = 'style="display:none;"';
+    } else if ($non_freight != NULL && $myarray != NULL) {
+        $freight_box = 'style="display:block;"';
+    } else {
+        $ship_style  = 'style="display:block;"';
+        $freight_box = 'style="display:none;"';
+    }
+    
+    $carriers_selected = Mage::getStoreConfig('carriers/freightcenter/positions');
+    if ($carriers_selected == NULL) {
+        $carrier_code = 'AAACOOPER';
+    } else {
+        if (strstr($carriers_selected, ',')) {
+            $all_carriers = explode(',', $carriers_selected);
+            $carrier_code = $all_carriers[0];
+        } else {
+            $carrier_code = $carriers_selected;
+        }
+    }
+    
+    
+    $active = Mage::getStoreConfig('carriers/freightcenter/active');
+    if ($active == '1') {
+        
+        $breakout_lineitems = Mage::getStoreConfig('carriers/freightcenter/breakout_lineitems');
+        $sandbox            = Mage::getStoreConfig('carriers/freightcenter/sandbox');
+        /* $apishipmenturl = Mage::getStoreConfig('carriers/freightcenter/apishipmenturl');
+        $apicarriersurl = Mage::getStoreConfig('carriers/freightcenter/apicarriersurl');
+        $apirateurl = Mage::getStoreConfig('carriers/freightcenter/apirateurl'); */
+        if ($sandbox == '1') {
+            $host           = "sandbox.freightcenter.com";
+            $apishipmenturl = "http://sandbox.freightcenter.com/v04/shipments.asmx";
+            $apirateurl     = "http://sandbox.freightcenter.com/v04/rates.asmx";
+            $apicarriersurl = "http://sandbox.freightcenter.com/v04/carriers.asmx";
+        } else {
+            $host           = "api.freightcenter.com";
+            $apishipmenturl = "http://api.freightcenter.com/v04/shipments.asmx";
+            $apirateurl     = "http://api.freightcenter.com/v04/rates.asmx";
+            $apicarriersurl = "http://api.freightcenter.com/v04/carriers.asmx";
+        }
+        
+        if ($breakout_lineitems == '1') {
+            if ($discount == '1') {
+                if ($subtotal > $discount_amount) {
+?>
+<div class="freight_ship" <?php
+                    echo $freight_box;
+?>>
+	<?php
+                    if ($myarray != NULL) {
+?>
+	<input type="hidden" value="<?php
+                        echo $this->getBaseUrl();
+?>" id="baseurl" />
+	<input type="hidden" value="<?php
+                        echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>" id="loader_url" />
+	<input type="hidden" value="<?php
+                        echo $allids;
+?>" id="freight_ids" />
+	<input type="hidden" value="<?php
+                        echo $address;
+?>" id="post_address" />
+	<input type="hidden" value="<?php
+                        echo $quote_id;
+?>" id="quoteid" />
+	<?php
+                        $current_freight_user = Mage::getStoreConfig('carriers/freightcenter/dest_loctype');
+                        $CarrierCode          = Mage::getStoreConfig('carriers/freightcenter/positions');
+                        $Carrierdisplay       = Mage::getStoreConfig('carriers/freightcenter/carrier_display');
+                        $MarkupType           = Mage::getStoreConfig('carriers/freightcenter/markup_type');
+                        $MarkupPrice          = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                        $CarrierCode          = explode(",", $CarrierCode);
+                        //echo count($CarrierCode);
+                        //if( $Carrierdisplay > count($CarrierCode))
+                        // {
+                        //	$Carrierdisplay = count($CarrierCode);
+                        // }
+?>
+	<!--	<div id="carrier_radio_select_div"></div>
+		<p style="font-size: 15px; font-weight: 600;">Select Carrier</p>
+		<?php
+                        //  for($modz=0;$modz<$Carrierdisplay; $modz++){
+?>
+		<input type="radio" class="ajax_new" value="<?php
+                        echo $CarrierCode[$modz];
+?>" name="Carrier"  id="ajax_new" onclick="get_carrier();"/>
+		<label for="ajax_new"><?php
+                        echo $CarrierCode[$modz];
+?> </br>
+       </label> -->
+	
+	<?php
+                        //  }
+                        $crra = explode(",", $current_freight_user);
+                        if (count($crra) < 0) {
+                        } else {
+?>
+	<div> 
+		<!--   <h4>Freight Cost</h4>-->
+		<h4>Select Location Type</h4>
+		<select class="required-entry required-entry select" onchange="apicallrate_location(this.value);" name="location_type" id="location_type">
+			<?php
+                            foreach ($crra as $crr) {
+?>
+			<option value="<?php
+                                echo str_replace(' ', '', $crr);
+?>">
+			<?php
+                                echo $crr;
+?>
+			</option>
+			<?php
+                            }
+?>
+		</select>
+	</div>
+	<?php
+                        }
+?>
+	<div style="margin-top: 10px"> 
+		<!-- <h4>Select Extra Services</h4>-->
+		<div class="accessories">
+		<?php //echo $crra['0']; ?>
+		<?php  if($crra['0'] == 'Residential') { ?>
+        <input onclick="apicallrateRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" /><label for="resident1" class="access_class">Threshold Delivery</label>
+     <?php } else if($crra['0'] == 'Business With Dock or Forklift') {?>
+       <input onclick="apicallrateRates();" id="buswith1" type="checkbox" value="DEST_NOTIFY" /><label for="buswith1" class="access_class">Call before Delivery</label>
+        <input onclick="apicallrateRates();" id="buswith2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswith2" class="access_class">Threshold Delivery</label>
+        <input onclick="apicallrateRates();" id="buswith3" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswith3" class="access_class">Limited Access Delivery</label>
+        
+  <?php  }  else if($crra['0'] == 'Business Without Dock or Forklift') { ?>
+        <input onclick="apicallrateRates();" id="buswithout1" type="checkbox" value="DEST_NOTIFY" /><label for="buswithout1" class="access_class">Call before Delivery</label>
+                    <input onclick="apicallrateRates();" id="buswithout2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswithout2" class="access_class">Threshold Delivery</label>
+                    <input onclick="apicallrateRates();" id="buswithout4" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswithout4" class="access_class">Limited Access Delivery</label>
+        
+   <?php }  else if($crra['0'] == 'Construction Site') { ?>
+       <input onclick="apicallrateRates();" id="const1" type="checkbox" value="DEST_LIFT_GATE" /><label for="const1" class="access_class">Lift Gate at Delivery Point</label>
+       
+  <?php  }  else if($crra['0'] == 'Convention Center or Tradeshow') { ?>
+       <input onclick="apicallrateRates();" id="convent1" type="checkbox" value="DEST_LIFT_GATE" /><label for="convent1" class="access_class">Lift Gate at Delivery Point</label>
+       
+   <?php } else if($crra['0'] == 'Terminal') { ?>
+       <input onclick="apicallrateRates();" id="terminal1" type="checkbox" value="DEST_NOTIFY" /><label for="terminal1" class="access_class">Call before Delivery</label>
+       
+    <?php } ?>
+            <!--  <input onclick="apicallrateRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" />
+            <label for="resident1" class="access_class">Threshold Delivery</label>
+          <input onclick="getaccessRates();" id="resident2" type="checkbox" value="DEST_LIFT_GATE" />
+            <label for="resident2" class="access_class">Lift Gate at Delivery Point</label>-->
+        </div>
+	</div>
+	<?php
+                    }
+                    
+?>
+	<hr />
+	<div class="freight_box">
+		<h3>Freight Shipping:</h3>
+		<ul>
+			<?php
+                    $attribute_f = Mage::getModel('eav/config')->getAttribute('catalog_product', 'freight_class');
+                    foreach ($attribute_f->getSource()->getAllOptions(true, true) as $opt_menuf) {
+                        $f_attribute[$opt_menuf['value']] = $opt_menuf['label'];
+                    }
+                    
+                    $attribute = Mage::getModel('eav/config')->getAttribute('catalog_product', 'packaging_type');
+                    foreach ($attribute->getSource()->getAllOptions(true, true) as $opt_menu1) {
+                        $m_attribute[$opt_menu1['value']] = $opt_menu1['label'];
+                    }
+                    $packaging_type = $m_attribute[$mainarray['packaging_type']];
+                    
+                    $attribute1 = Mage::getModel('eav/config')->getAttribute('catalog_product', 'origin_warehouse');
+                    foreach ($attribute1->getSource()->getAllOptions(true, true) as $opt_menu) {
+                        $m1_attribute[$opt_menu['value']] = $opt_menu['label'];
+                    }
+                    
+                    /* combine products by warehouse */
+                    
+                    foreach ($myarray as $mainarray) {
+                        $product_id          = $mainarray['entity_id'];
+                        //$product_descriptions = $mainarray['description'];
+                        $product_description = str_replace(' ', '', $mainarray['description']);
+                        $product_name        = $mainarray['name'];
+                        $freight_length      = $mainarray['freight_length'];
+                        $freight_width       = $mainarray['freight_width'];
+                        $freight_height      = $mainarray['freight_height'];
+                        $nmfc                = $mainarray['nmfc'];
+                        //$freight_class = $mainarray['freight_class'];
+                        $quantity            = $cart_products[$product_id];
+                        $weight              = ($mainarray['weight'] * $quantity);
+                        $freight_class       = $f_attribute[$mainarray['freight_class']];
+                        
+                        
+                        $ware_id        = $m1_attribute[$mainarray['origin_warehouse']];
+                        $resource       = Mage::getSingleton('core/resource');
+                        $readConnection = $resource->getConnection('core_read');
+                        $tableNamep     = $resource->getTableName('brst_ship_warehouses');
+                        $queryp         = "SELECT * FROM  $tableNamep WHERE short_name = '$ware_id' LIMIT 10";
+                        $results        = $readConnection->fetchAll($queryp);
+?>
+			<li>
+				<?php
+                        echo $product_name;
+?>
+			</li>
+			<?php
+                        
+                        foreach ($results as $ware_result) {
+                            $warehouse_name          = $ware_result['short_name'];
+                            //$warehouse_location_types =  $ware_result['location_type'];
+                            $warehouse_location_type = str_replace(' ', '', $ware_result['location_type']);
+                            $ware_cmpny_postcode     = $ware_result['cmpny_postcode'];
+                            
+                        }
+?>
+			<input type="hidden" value="<?php
+                        echo $product_id;
+?>" name="<?php
+                        echo $product_id;
+?>" id="product_id"/>
+			<input type="hidden" value="<?php
+                        echo $product_description;
+?>" name="<?php
+                        echo $product_description;
+?>" id="product_description"/>
+			<input type="hidden" value="<?php
+                        echo $product_name;
+?>" name="<?php
+                        echo $product_name;
+?>" id="product_name"/>
+			<input type="hidden" value="<?php
+                        echo $freight_length;
+?>" name="<?php
+                        echo $freight_length;
+?>" id="freight_length"/>
+			<input type="hidden" value="<?php
+                        echo $freight_width;
+?>" name="<?php
+                        echo $freight_width;
+?>" id="freight_width"/>
+			<input type="hidden" value="<?php
+                        echo $freight_height;
+?>" name="<?php
+                        echo $freight_height;
+?>" id="freight_height"/>
+			<input type="hidden" value="<?php
+                        echo $nmfc;
+?>" name="<?php
+                        echo $nmfc;
+?>" id="nmfc"/>
+			<input type="hidden" value="<?php
+                        echo $weight;
+?>" name="<?php
+                        echo $weight;
+?>" id="weight"/>
+			<input type="hidden" value="<?php
+                        echo $freight_class;
+?>" name="<?php
+                        echo $freight_class;
+?>" id="freight_class"/>
+			<input type="hidden" value="<?php
+                        echo $packaging_type;
+?>" name="<?php
+                        echo $packaging_type;
+?>" id="packaging_type"/>
+			<input type="hidden" value="<?php
+                        echo $address;
+?>" name="<?php
+                        echo $address;
+?>" id="address"/>
+			<input type="hidden" value="<?php
+                        echo $current_page;
+?>" name="<?php
+                        echo $current_page;
+?>" id="current_page"/>
+			<input type="hidden" value="<?php
+                        echo $ware_cmpny_postcode;
+?>" name="<?php
+                        echo $ware_cmpny_postcode;
+?>" id="ware_cmpny_postcode"/>
+			<input type="hidden" value="<?php
+                        echo $warehouse_name;
+?>" name="<?php
+                        echo $warehouse_name;
+?>" id="warehouse_name"/>
+			<input type="hidden" value="<?php
+                        echo $warehouse_location_type;
+?>" name="<?php
+                        echo $warehouse_location_type;
+?>" id="warehouse_location_type"/>
+			<input type="hidden" value="<?php
+                        echo $quote_id;
+?>" name="<?php
+                        echo $quote_id;
+?>" id="quote_id"/>
+			<input type="hidden" onclick="apicallrate();" name="freight Products" id="newCheck<?php
+                        echo $product_id;
+?>" />
+			<?php
+                        
+                        
+                    }
+                    
+?>
+			<script>
+jQuery( document ).ready(function() {
+ //alert('hello');
+ apicallrate();
+});
+</script>
+			<div style="display: block; height: 35px; margin-top: 20px;" id="pls_wait"> <span id="loader_loctype<?php
+                    echo $product_id;
+?>"> <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php
+                    echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>"> </span> <span>Loading Carrier Rates</span> </div>
+			<div id="ajax_response_else"></div>
+		</ul>
+	</div>
+	<?php
+                    if ($non_freight != NULL) {
+?>
+	<hr />
+	<div class="freight_box">
+		<h3>Parcel (Non-Freight) Shipping</h3>
+		<p>The following items do not require freight shipping. These items ship via parcel providers:</p>
+		<ul>
+			<?php
+                        foreach ($non_freight as $non) {
+?>
+			<li>
+				<?php
+                            echo $non['name'];
+?>
+			</li>
+			<?php
+                        }
+?>
+		</ul>
+	</div>
+	<?php
+                    }
+?>
+</div>
+<?php
+                } else {
+?>
+<div class="freight_ship" <?php
+                    echo $freight_box;
+?>>
+	<?php
+                    if ($myarray != NULL) {
+?>
+	<input type="hidden" value="<?php
+                        echo $this->getBaseUrl();
+?>" id="baseurl" />
+	<input type="hidden" value="<?php
+                        echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>" id="loader_url" />
+	<input type="hidden" value="<?php
+                        echo $allids;
+?>" id="freight_ids" />
+	<input type="hidden" value="<?php
+                        echo $address;
+?>" id="post_address" />
+	<input type="hidden" value="<?php
+                        echo $quote_id;
+?>" id="quoteid" />
+	<?php
+                        $current_freight_user = Mage::getStoreConfig('carriers/freightcenter/dest_loctype');
+                        $CarrierCode          = Mage::getStoreConfig('carriers/freightcenter/positions');
+                        $Carrierdisplay       = Mage::getStoreConfig('carriers/freightcenter/carrier_display');
+                        $markup               = Mage::getStoreConfig('carriers/freightcenter/markup');
+                        $markup_type          = Mage::getStoreConfig('carriers/freightcenter/markup_type');
+                        $markup_price         = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                        $CarrierCode          = explode(",", $CarrierCode);
+                        //echo count($CarrierCode);
+                        /*  if( $Carrierdisplay > count($CarrierCode))
+                        {
+                        $Carrierdisplay = count($CarrierCode);
+                        } */
+                        $carriercount         = count($CarrierCode);
+?>
+	<div id="carrier_radio_select_div"></div>
+	<!--<p style="font-size: 15px; font-weight: 600;">Select Carrier</p>-->
+	<?php
+                        for ($modz = 0; $modz < $carriercount; $modz++) {
+                            
+                            $carrier_multi_rate .= " <Carrier>
+              <RatesRequest_Carrier>
+                <CarrierCode>" . $CarrierCode[$modz] . "</CarrierCode>
+              <services />
+              </RatesRequest_Carrier>
+            </Carrier>";
+                        }
+                        /* echo $carrier_multi_rate;
+                        die(); */
+                        $crra = explode(",", $current_freight_user);
+                        if (count($crra) < 0) {
+                        } else {
+?>
+	<div> 
+		<!--   <h4>Freight Cost</h4>-->
+		<h4>Select Location Type</h4>
+		<select class="required-entry required-entry select" onchange="getrate_again_one(this.value,'<?php
+                            echo $allids;
+?>','<?php
+                            echo $address;
+?>','<?php
+                            echo $quote_id;
+?>');" name="location_type" id="location_type">
+			<?php
+                            foreach ($crra as $crr) {
+?>
+			<option value="<?php
+                                echo str_replace(' ', '', $crr);
+?>">
+			<?php
+                                echo $crr;
+?>
+			</option>
+			<?php
+                            }
+?>
+		</select>
+	</div>
+	<?php
+                        }
+?>
+	<div style="margin-top: 10px"> 
+		<!-- <h4>Select Extra Services</h4>-->
+		<div class="accessories">
+		<?php //echo $crra['0']; 
+		 $new_doc_type =  str_replace(' ', '', $crra['0']);?>
+		<?php  if($crra['0'] == 'Residential') { ?>
+        <input onclick="getaccessRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" /><label for="resident1" class="access_class">Threshold Delivery</label>
+     <?php } else if($crra['0'] == 'Business With Dock or Forklift') {?>
+       <input onclick="getaccessRates();" id="buswith1" type="checkbox" value="DEST_NOTIFY" /><label for="buswith1" class="access_class">Call before Delivery</label>
+        <input onclick="getaccessRates();" id="buswith2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswith2" class="access_class">Threshold Delivery</label>
+        <input onclick="getaccessRates();" id="buswith3" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswith3" class="access_class">Limited Access Delivery</label>
+        
+  <?php  }  else if($crra['0'] == 'Business Without Dock or Forklift') { ?>
+        <input onclick="getaccessRates();" id="buswithout1" type="checkbox" value="DEST_NOTIFY" /><label for="buswithout1" class="access_class">Call before Delivery</label>
+                    <input onclick="getaccessRates();" id="buswithout2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswithout2" class="access_class">Threshold Delivery</label>
+                    <input onclick="getaccessRates();" id="buswithout4" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswithout4" class="access_class">Limited Access Delivery</label>
+        
+   <?php }  else if($crra['0'] == 'Construction Site') { ?>
+       <input onclick="getaccessRates();" id="const1" type="checkbox" value="DEST_LIFT_GATE" /><label for="const1" class="access_class">Lift Gate at Delivery Point</label>
+       
+  <?php  }  else if($crra['0'] == 'Convention Center or Tradeshow') { ?>
+       <input onclick="getaccessRates();" id="convent1" type="checkbox" value="DEST_LIFT_GATE" /><label for="convent1" class="access_class">Lift Gate at Delivery Point</label>
+       
+   <?php } else if($crra['0'] == 'Terminal') { ?>
+       <input onclick="getaccessRates();" id="terminal1" type="checkbox" value="DEST_NOTIFY" /><label for="terminal1" class="access_class">Call before Delivery</label>
+       
+    <?php } ?>
+            <!--  <input onclick="apicallrateRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" />
+            <label for="resident1" class="access_class">Threshold Delivery</label>
+          <input onclick="getaccessRates();" id="resident2" type="checkbox" value="DEST_LIFT_GATE" />
+            <label for="resident2" class="access_class">Lift Gate at Delivery Point</label>-->
+        </div>
+	</div>
+	<hr />
+	<h4>Freight Shipping</h4>
+	<?php
+                    }
+                    $attribute_f = Mage::getModel('eav/config')->getAttribute('catalog_product', 'freight_class');
+                    foreach ($attribute_f->getSource()->getAllOptions(true, true) as $opt_menuf) {
+                        $f_attribute[$opt_menuf['value']] = $opt_menuf['label'];
+                    }
+                    
+                    $attribute = Mage::getModel('eav/config')->getAttribute('catalog_product', 'packaging_type');
+                    foreach ($attribute->getSource()->getAllOptions(true, true) as $opt_menu1) {
+                        $m_attribute[$opt_menu1['value']] = $opt_menu1['label'];
+                    }
+                    
+                    $attribute1 = Mage::getModel('eav/config')->getAttribute('catalog_product', 'origin_warehouse');
+                    foreach ($attribute1->getSource()->getAllOptions(true, true) as $opt_menu) {
+                        $m1_attribute[$opt_menu['value']] = $opt_menu['label'];
+                    }
+                    
+                    /* combine products by warehouse */
+                    
+                    $ware_array = array();
+					$new_doc_type =  str_replace(' ', '', $crra['0']);
+                    foreach ($myarray as $proarray) {
+                        $warehouseid = $m1_attribute[$proarray['origin_warehouse']];
+                        
+                        $connection   = Mage::getSingleton('core/resource')->getConnection('core_read');
+                        $ware_query   = "SELECT * FROM `brst_ship_warehouses` WHERE short_name = '$warehouseid'";
+                        $ware_results = $connection->fetchAll($ware_query);
+                        if ($ware_results != NULL) {
+                            $warehousename = $ware_results[0]['short_name'];
+                        }
+                        
+                        if (array_key_exists($warehousename, $ware_array)) {
+                            array_push($ware_array[$warehousename], $proarray);
+                        } else {
+                            $ware_array[$warehousename] = array(
+                                $proarray
+                            );
+                        }
+                    }
+                    //echo '<pre>'; print_r($ware_array);echo '</pre>'; exit;
+                    $ware_count     = count($ware_array);
+                    $discount_price = $discount_price / $ware_count;
+                    $markup_price   = $markup_price / $ware_count;
+                    foreach ($ware_array as $key => $value) {
+                        //$start = 1;
+                        $pro_item  = '';
+                        $pro_names = '';
+                        foreach ($value as $mainarray) {
+                            $product_id          = $mainarray['entity_id'];
+                            $product_description = str_replace(' ', '', $mainarray['description']);
+                            $product_name        = $mainarray['name'];
+                            $freight_length      = $mainarray['freight_length'];
+                            $freight_width       = $mainarray['freight_width'];
+                            $freight_height      = $mainarray['freight_height'];
+                            $nmfc                = $mainarray['nmfc'];
+                            $quantity            = $cart_products[$product_id];
+                            $weight              = ($mainarray['weight'] * $quantity);
+                            
+                            $freight_class = $f_attribute[$mainarray['freight_class']];
+                            //$packaging_type = $m_attribute[$mainarray['packaging_type']];
+                            $ware_id       = $m1_attribute[$mainarray['origin_warehouse']];
+                            
+                            $resource       = Mage::getSingleton('core/resource');
+                            $readConnection = $resource->getConnection('core_read');
+                            $tableNamep     = $resource->getTableName('brst_ship_warehouses');
+                            $queryp         = "SELECT * FROM  $tableNamep WHERE short_name = '$ware_id' LIMIT 10";
+                            
+                            $results = $readConnection->fetchAll($queryp);
+                            //echo "<pre>";print_r($results);exit;
+                            foreach ($results as $ware_result) {
+                                //$warehouse_name =  $ware_result['short_name'];
+                                $warehouse_location_type = str_replace(' ', '', $ware_result['location_type']);
+                                $accessorials            = $ware_result['accessorials'];
+                                $accessorials            = explode(',', $accessorials);
+                                //print_r($accessorials);
+                                $accessorialsdisplay     = count($accessorials);
+                                $print_accessorials      = '';
+                                for ($modz = 0; $modz < $accessorialsdisplay; $modz++) {
+                                    
+                                    //$print_accessorials ="<p>".$accessorials[$modz]."</p>" 
+                                    if ($accessorials[$modz] == '1') {
+                                        $print_accessorials .= "<string>ORIGIN_LIFT_GATE</string>";
+                                    }
+                                    if ($accessorials[$modz] == '2') {
+                                        $print_accessorials .= "<string>ORIGIN_LIMITED_PU</string>";
+                                    }
+                                    if ($accessorials[$modz] == '3') {
+                                        $print_accessorials .= "<string>ORIGIN_INSIDE_PU</string>";
+                                    }
+                                    if ($accessorials[$modz] == '4') {
+                                        $print_accessorials .= "<string>ORIGIN_CALL_FOR_APPT</string>";
+                                    }
+                                }
+                                //echo $print_accessorials;
+?>
+	<input type="hidden" value="<?php
+                                echo $warehouse_location_type;
+?>" id="hidden_warehouse_location" />
+	<?php
+                                $warehouse_postcode = $ware_result['cmpny_postcode'];
+                                $city               = $ware_result['city'];
+                                $state              = $ware_result['state'];
+                                //$location_type = $ware_result['location_type'];
+?>
+	<input type="hidden" value="<?php
+                                echo $warehouse_postcode;
+?>" id="warehouse_postcode" />
+	<?php
+                            }
+                            
+                            $pro_names .= '<li>' . $product_name . '</li>';
+                            
+                            $pro_item .= '<RatesRequest_Item>
+                                        <Description>' . $product_description . '</Description>
+                                        <PackagingCode>Palletized</PackagingCode>
+                                        <Quantity>' . $quantity . '</Quantity>
+                                        <LinearFeet>0</LinearFeet>
+                                        <Dimensions>
+                                          <Length>' . $freight_length . '</Length>
+                                          <Width>' . $freight_width . '</Width>
+                                          <Height>' . $freight_height . '</Height>
+                                          <UnitOfMeasure>IN</UnitOfMeasure>
+                                        </Dimensions>
+                                        <FreightClass>' . $freight_class . '</FreightClass>
+                                        <Weight>
+                                          <WeightAmt>' . $weight . '</WeightAmt>
+                                          <UnitOfMeasure>LBS</UnitOfMeasure>
+                                        </Weight>
+                                        <Nmfc>' . $nmfc . '</Nmfc>
+                                      </RatesRequest_Item>';
+                        }
+?>
+	<div class="freight_box"  id="freight_box<?php
+                        echo $product_id;
+?>">
+		<?php //if($start == 1) { 
+?>
+		<div id="fre_ship">
+			<p>Choose a carrier for items shipping from
+				<?php
+                        echo $city;
+?>
+				,
+				<?php
+                        echo $state;
+?>
+				:</p>
+		</div>
+		<?php //} 
+?>
+		<ul>
+			
+				<?php
+                        echo $pro_names;
+?>
+			
+		</ul>
+		<div id="ajax_response<?php
+                        echo $product_id;
+?>">
+			<?php
+                        $xml = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+                              <soap12:Body>
+                                <GetRates xmlns="http://freightcenter.com/API/V04/">
+                                  <request>
+                                    <LicenseKey>3BDA740C-FF39-4BDC-AB49-B0A3C08E23B4</LicenseKey>
+                                    <Username>'.$freightuser.'</Username>
+									<Password>'.$freightpwd.'</Password>
+                                    <OriginPostalCode>' . $warehouse_postcode . '</OriginPostalCode>
+                                    <OriginLocationType>' . $warehouse_location_type . '</OriginLocationType>
+                                    <DestinationPostalCode>' . $address . '</DestinationPostalCode>
+                                    <DestinationLocationType>'.$new_doc_type.'</DestinationLocationType>
+                                    <Items>' . $pro_item . '</Items>
+									  <Accessorials>' . $print_accessorials . '</Accessorials>
+                                    <Filters>
+                                      <Mode>LTL</Mode>
+                                      <IncludeWhiteGlove>false</IncludeWhiteGlove>
+                                      <IncludeMotorcycleRates>false</IncludeMotorcycleRates>
+                                      <CarrierFilter>
+                                        <CarrierFilterType>INCLUDE</CarrierFilterType>
+                                        ' . $carrier_multi_rate . '
+                                      </CarrierFilter>
+                                    </Filters>
+                                  </request>
+                                </GetRates>
+                              </soap12:Body>
+                            </soap12:Envelope>';
+                        
+                        $apiurl = $apirateurl;
+                        
+                        $headers = array(
+                            "POST  /V04/rates.asmx HTTP/1.1",
+                            "Host: " . $host . "",
+                            "Content-Type: text/xml; charset=utf-8",
+                            "Content-length: " . strlen($xml)
+                        );
+                        //print_r($xml);
+                        
+                        /* send curl request to get active carriers */
+                        $soap_do = curl_init();
+                        curl_setopt($soap_do, CURLOPT_URL, $apiurl);
+                        curl_setopt($soap_do, CURLOPT_RETURNTRANSFER, true);
+                        curl_setopt($soap_do, CURLOPT_SSL_VERIFYPEER, false);
+                        curl_setopt($soap_do, CURLOPT_SSL_VERIFYHOST, false);
+                        curl_setopt($soap_do, CURLOPT_POST, true);
+                        curl_setopt($soap_do, CURLOPT_CONNECTTIMEOUT, 0);
+                        curl_setopt($soap_do, CURLOPT_TIMEOUT, 400);
+                        curl_setopt($soap_do, CURLOPT_HTTPHEADER, $headers);
+                        curl_setopt($soap_do, CURLOPT_POSTFIELDS, $xml);
+                        
+                        $result = curl_exec($soap_do);
+                        
+                        curl_close($soap_do);
+                        
+                        $p = xml_parser_create();
+                        xml_parse_into_struct($p, $result, $vals, $index);
+                        xml_parser_free($p);
+                        //echo '<pre>'; print_r($vals);
+                        $vals['5']['value'];
+                        if ($vals['5']['value'] == 'ERROR') {
+?>
+			<div>
+			<input type="radio" style="display:none" class="ajax" id="s_method_flatrate_flatrate" value="" name="shipping_method">
+				<p> There was a problem with the freight.  Do you want to check-out with only non-freight products? </p>
+				<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button>
+			</div>
+			<?php
+                        } else if ($vals['5']['value'] == 'WARNING') {
+?>
+			<div>
+			<input type="radio" style="display:none" class="ajax" id="s_method_flatrate_flatrate" value="" name="shipping_method">
+				<p> There was a problem with the freight.  Do you want to check-out with only non-freight products? </p>
+				<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button>
+			</div>
+			<?php
+                        } else if (empty($vals)) {
+?>
+			<div>
+			<input type="radio" style="display:none" class="ajax" id="s_method_flatrate_flatrate" value="" name="shipping_method">
+				<p> There was a problem with the freight.  Do you want to check-out with only non-freight products? </p>
+				<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button>
+			</div>
+			<?php
+                        } else {
+                            
+                            $xmlResponseArray = array();
+                            foreach ($vals as $charges) {
+                                
+                                if (in_array("TOTALCHARGE", $charges)) {
+                                    $xmlResponseArray['TOTALCHARGE'][] = $charges['value'];
+                                }
+                                if (in_array("SERVICENAME", $charges)) {
+                                    $xmlResponseArray['SERVICENAME'][] = $charges['value'];
+                                }
+                                if (in_array("SERVICEDAYS", $charges)) {
+                                    $xmlResponseArray['SERVICEDAYS'][] = $charges['value'];
+                                }
+                                if (in_array("RATEID", $charges)) {
+                                    $xmlResponseArray['RATEID'][] = $charges['value'];
+                                }
+                            }
+                            $xmlResponse    = array();
+                            $countedCharges = count($xmlResponseArray['TOTALCHARGE']);
+                            
+                            //echo 
+                            if ($subtotal > $discount_amount) {
+                                $Carrierd = 1;
+                            } else {
+                                $Carrierd = $Carrierdisplay;
+                            }
+                            for ($j = 0; $j < $Carrierd; $j++) {
+                                $xmlResponse[$j][] = $xmlResponseArray['TOTALCHARGE'][$j];
+                                $xmlResponse[$j][] = $xmlResponseArray['SERVICENAME'][$j];
+                                $xmlResponse[$j][] = $xmlResponseArray['SERVICEDAYS'][$j];
+                                $xmlResponse[$j][] = $xmlResponseArray['RATEID'][$j];
+                            }
+?>
+			<!--<h4>Select a carrier rate</h4>-->
+			<?php
+                            //	echo '<pre>'; print_r($xmlResponse);
+                            foreach ($xmlResponse as $xmlResponse2) {
+                                $total_charge   = $xmlResponse2[0];
+                                $carriers_value = $xmlResponse2[1];
+                                $business_day   = $xmlResponse2[2];
+                                $RATEID         = $xmlResponse2[3];
+                                
+                                if ($total_charge == '') {
+?>
+			<!--<div><p>
+							“There a problem with the freight.  Do you want to check-out with only non-freight products?”  
+							Please click...
+							</p>
+							<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button></div> -->
+			
+			<?php
+                                } else {
+                                    
+                                    /* if($subtotal > $discount_amount){
+                                    //echo $total_charge;
+                                    if($total_charge < $discount_price){
+                                    } else{
+                                    $total_charge = $discount_price;
+                                    }
+                                    } */
+                                    //echo $total_charge;
+                                    if ($markup == 'none') {
+                                        $gettotal = $total_charge;
+                                        if ($subtotal > $discount_amount) {
+                                            //echo $total_charge;
+                                            if ($gettotal < $discount_price) {
+                                            } else {
+                                                $gettotal = $discount_price;
+                                            }
+                                        }
+                                        
+                                    }
+                                    
+                                    if ($markup == 'markup') {
+                                        $gettotal = $total_charge;
+                                        if ($markup_type == 'percent') {
+                                            $markup_price = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                                            $gettotal_pr  = ($gettotal * $markup_price) / 100;
+                                            $gettotal     = $gettotal + $gettotal_pr;
+                                        } else {
+                                            //$markup_price =	Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                                            $gettotal = $gettotal + $markup_price;
+                                        }
+                                        
+                                        if ($subtotal > $discount_amount) {
+                                            //echo $total_charge;
+                                            if ($gettotal < $discount_price) {
+                                            } else {
+                                                $gettotal = $discount_price;
+                                            }
+                                        }
+                                    }
+                                    
+                                    if ($markup == 'discount') {
+                                        $gettotal = $total_charge;
+                                        if ($markup_type == 'percent') {
+                                            $markup_price = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                                            $gettotal_pr  = ($gettotal * $markup_price) / 100;
+                                            $gettotal     = $gettotal - $gettotal_pr;
+                                        } else {
+                                            //$markup_price =	Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                                            $gettotal = $gettotal - $markup_price;
+                                        }
+                                        if ($subtotal > $discount_amount) {
+                                            //echo $total_charge;
+                                            if ($gettotal < $discount_price) {
+                                            } else {
+                                                $gettotal = $discount_price;
+                                            }
+                                        }
+                                        
+                                        
+                                    }
+                                    
+?>
+			<div style="display: none; height: 35px; margin-top: 20px;" class="pls-wait"> <span id="loader_loctype<?php
+                                    echo $product_id;
+?>"> <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php
+                                    echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>"> </span> <span>Loading Carrier Rates</span> </div>
+			<div class="ajax-result" id="ajax_result<?php
+                                    print $product_id;
+?>">
+				<table>
+					<tr>
+						<td width="20"><input type="radio" class="ajax" value="ajax_response" name="shipping<?php
+                                    print $product_id;
+?>" onclick="ajaxcallnew('<?php
+                                    print $product_id;
+?>','<?php
+                                    print $gettotal;
+?>','<?php
+                                    echo $quote_id;
+?>','<?php
+                                    echo $carriers_value;
+?>','<?php
+                                    echo $RATEID;
+?>',<?php
+                                    echo $business_day;
+?>,'<?php
+                                    echo $total_charge;
+?>');" id="ajax<?php
+                                    print $product_id;
+?>" /></td>
+						<td><label for="ajax<?php
+                                    print $product_id;
+?>"><span class="car_show">
+								<?php
+                                    echo $carriers_value;
+?>
+								</span> <span style="display:none;" id="apply_rate<?php
+                                    echo $product_id;
+?>"> <img class="v-middle" title="Applying carrier rate..." alt="Applying carrier rate..." src="<?php
+                                    echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>" /> </span></label>
+							<br/>
+							Estimated Transit Time:
+							<?php
+                                    echo $business_day;
+?>
+							Business days
+							<?php
+                                    if ($gettotal < $total_charge) {
+?>
+							</br>
+							Cost: $
+							<?php
+                                        print $total_char = number_format($total_charge, 2, '.', ',');
+?>
+							</br>
+							Discount: -$
+							<?php
+                                        $discount_get = $total_charge - $gettotal;
+                                        echo $discount_get = number_format($discount_get, 2, '.', ',');
+                                        
+?>
+							<?php
+                                    }
+?>
+							</br>
+							You Pay: $
+							<?php
+                                    echo $gettot = number_format($gettotal, 2, '.', ',');
+?></td>
+					</tr>
+				</table>
+				<div style="clear:both;height:16px;"></div>
+			</div>
+			<?php
+                                }
+                            }
+                        }
+?>
+		</div>
+	</div>
+	<?php
+                    }
+                    if ($non_freight != NULL) {
+?>
+	<hr />
+	<div class="freight_box">
+		<h3>Parcel (Non-Freight) Shipping</h3>
+		<p>The following items do not require freight shipping. These items ship via parcel providers:</p>
+		<ul>
+			<?php
+                        foreach ($non_freight as $non) {
+?>
+			<li>
+				<?php
+                            echo $non['name'];
+?>
+			</li>
+			<?php
+                        }
+?>
+		</ul>
+	</div>
+	<?php
+                    }
+?>
+</div>
+<?php
+                }
+            } else {
+?>
+<div class="freight_ship" <?php
+                echo $freight_box;
+?>>
+	<?php
+                if ($myarray != NULL) {
+?>
+	<input type="hidden" value="<?php
+                    echo $this->getBaseUrl();
+?>" id="baseurl" />
+	<input type="hidden" value="<?php
+                    echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>" id="loader_url" />
+	<input type="hidden" value="<?php
+                    echo $allids;
+?>" id="freight_ids" />
+	<input type="hidden" value="<?php
+                    echo $address;
+?>" id="post_address" />
+	<input type="hidden" value="<?php
+                    echo $quote_id;
+?>" id="quoteid" />
+	<?php
+                    $current_freight_user = Mage::getStoreConfig('carriers/freightcenter/dest_loctype');
+                    $CarrierCode          = Mage::getStoreConfig('carriers/freightcenter/positions');
+                    $Carrierdisplay       = Mage::getStoreConfig('carriers/freightcenter/carrier_display');
+                    $markup               = Mage::getStoreConfig('carriers/freightcenter/markup');
+                    $markup_type          = Mage::getStoreConfig('carriers/freightcenter/markup_type');
+                    $markup_price         = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                    $CarrierCode          = explode(",", $CarrierCode);
+                    //echo count($CarrierCode);
+                    /*  if( $Carrierdisplay > count($CarrierCode))
+                    {
+                    $Carrierdisplay = count($CarrierCode);
+                    } */
+                    $carriercount         = count($CarrierCode);
+?>
+	<div id="carrier_radio_select_div"></div>
+	<!--<p style="font-size: 15px; font-weight: 600;">Select Carrier</p>-->
+	<?php
+                    for ($modz = 0; $modz < $carriercount; $modz++) {
+                        
+                        $carrier_multi_rate .= " <Carrier>
+              <RatesRequest_Carrier>
+                <CarrierCode>" . $CarrierCode[$modz] . "</CarrierCode>
+              <services />
+              </RatesRequest_Carrier>
+            </Carrier>";
+                    }
+                    //echo $carrier_multi_rate;
+                    $crra = explode(",", $current_freight_user);
+                    if (count($crra) < 0) {
+                    } else {
+?>
+	<div> 
+		<!--   <h4>Freight Cost</h4>-->
+		<h4>Select Location Type</h4>
+		<select class="required-entry required-entry select" onchange="getrate_again(this.value,'<?php
+                        echo $allids;
+?>','<?php
+                        echo $address;
+?>','<?php
+                        echo $quote_id;
+?>');" name="location_type" id="location_type">
+			<?php
+                        foreach ($crra as $crr) {
+?>
+			<option value="<?php
+                            echo str_replace(' ', '', $crr);
+?>">
+			<?php
+                            echo $crr;
+?>
+			</option>
+			<?php
+                        }
+?>
+		</select>
+	</div>
+	<?php
+                    }
+?>
+	<div style="margin-top: 10px"> 
+		<!-- <h4>Select Extra Services</h4>-->
+		<div class="accessories">
+		<?php //echo $crra['0'];
+$new_doc_type =  str_replace(' ', '', $crra['0']);		?>
+		<?php  if($crra['0'] == 'Residential') { ?>
+        <input onclick="getaccessRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" /><label for="resident1" class="access_class">Threshold Delivery</label>
+     <?php } else if($crra['0'] == 'Business With Dock or Forklift') {?>
+       <input onclick="getaccessRates();" id="buswith1" type="checkbox" value="DEST_NOTIFY" /><label for="buswith1" class="access_class">Call before Delivery</label>
+        <input onclick="getaccessRates();" id="buswith2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswith2" class="access_class">Threshold Delivery</label>
+        <input onclick="getaccessRates();" id="buswith3" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswith3" class="access_class">Limited Access Delivery</label>
+        
+  <?php  }  else if($crra['0'] == 'Business Without Dock or Forklift') { ?>
+        <input onclick="getaccessRates();" id="buswithout1" type="checkbox" value="DEST_NOTIFY" /><label for="buswithout1" class="access_class">Call before Delivery</label>
+                    <input onclick="getaccessRates();" id="buswithout2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswithout2" class="access_class">Threshold Delivery</label>
+                    <input onclick="getaccessRates();" id="buswithout4" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswithout4" class="access_class">Limited Access Delivery</label>
+        
+   <?php }  else if($crra['0'] == 'Construction Site') { ?>
+       <input onclick="getaccessRates();" id="const1" type="checkbox" value="DEST_LIFT_GATE" /><label for="const1" class="access_class">Lift Gate at Delivery Point</label>
+       
+  <?php  }  else if($crra['0'] == 'Convention Center or Tradeshow') { ?>
+       <input onclick="getaccessRates();" id="convent1" type="checkbox" value="DEST_LIFT_GATE" /><label for="convent1" class="access_class">Lift Gate at Delivery Point</label>
+       
+   <?php } else if($crra['0'] == 'Terminal') { ?>
+       <input onclick="getaccessRates();" id="terminal1" type="checkbox" value="DEST_NOTIFY" /><label for="terminal1" class="access_class">Call before Delivery</label>
+       
+    <?php } ?>
+            <!--  <input onclick="apicallrateRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" />
+            <label for="resident1" class="access_class">Threshold Delivery</label>
+          <input onclick="getaccessRates();" id="resident2" type="checkbox" value="DEST_LIFT_GATE" />
+            <label for="resident2" class="access_class">Lift Gate at Delivery Point</label>-->
+        </div>
+	</div>
+	<hr />
+	<h4>Freight Shipping</h4>
+	<?php
+                }
+                $attribute_f = Mage::getModel('eav/config')->getAttribute('catalog_product', 'freight_class');
+                foreach ($attribute_f->getSource()->getAllOptions(true, true) as $opt_menuf) {
+                    $f_attribute[$opt_menuf['value']] = $opt_menuf['label'];
+                }
+                
+                $attribute = Mage::getModel('eav/config')->getAttribute('catalog_product', 'packaging_type');
+                foreach ($attribute->getSource()->getAllOptions(true, true) as $opt_menu1) {
+                    $m_attribute[$opt_menu1['value']] = $opt_menu1['label'];
+                }
+                
+                $attribute1 = Mage::getModel('eav/config')->getAttribute('catalog_product', 'origin_warehouse');
+                foreach ($attribute1->getSource()->getAllOptions(true, true) as $opt_menu) {
+                    $m1_attribute[$opt_menu['value']] = $opt_menu['label'];
+                }
+                
+                /* combine products by warehouse */
+                
+                $ware_array = array();
+				$new_doc_type =  str_replace(' ', '', $crra['0']);
+                foreach ($myarray as $proarray) {
+                    $warehouseid = $m1_attribute[$proarray['origin_warehouse']];
+                    
+                    $connection   = Mage::getSingleton('core/resource')->getConnection('core_read');
+                    $ware_query   = "SELECT * FROM `brst_ship_warehouses` WHERE short_name = '$warehouseid'";
+                    $ware_results = $connection->fetchAll($ware_query);
+                    if ($ware_results != NULL) {
+                        $warehousename = $ware_results[0]['short_name'];
+                    }
+                    
+                    if (array_key_exists($warehousename, $ware_array)) {
+                        array_push($ware_array[$warehousename], $proarray);
+                    } else {
+                        $ware_array[$warehousename] = array(
+                            $proarray
+                        );
+                    }
+                }
+                //echo '<pre>'; print_r($ware_array);echo '</pre>'; exit;
+                $ware_count     = count($ware_array);
+                $discount_price = $discount_price / $ware_count;
+                $markup_price   = $markup_price / $ware_count;
+                foreach ($ware_array as $key => $value) {
+                    //$start = 1;
+                    $pro_item  = '';
+                    $pro_names = '';
+                    foreach ($value as $mainarray) {
+                        $product_id          = $mainarray['entity_id'];
+                        $product_description = str_replace(' ', '', $mainarray['description']);
+                        $product_name        = $mainarray['name'];
+                        $freight_length      = $mainarray['freight_length'];
+                        $freight_width       = $mainarray['freight_width'];
+                        $freight_height      = $mainarray['freight_height'];
+                        $nmfc                = $mainarray['nmfc'];
+                        $quantity            = $cart_products[$product_id];
+                        $weight              = ($mainarray['weight'] * $quantity);
+                        
+                        $freight_class = $f_attribute[$mainarray['freight_class']];
+                        //$packaging_type = $m_attribute[$mainarray['packaging_type']];
+                        $ware_id       = $m1_attribute[$mainarray['origin_warehouse']];
+                        
+                        $resource       = Mage::getSingleton('core/resource');
+                        $readConnection = $resource->getConnection('core_read');
+                        $tableNamep     = $resource->getTableName('brst_ship_warehouses');
+                        $queryp         = "SELECT * FROM  $tableNamep WHERE short_name = '$ware_id' LIMIT 10";
+                        
+                        $results = $readConnection->fetchAll($queryp);
+                        //echo "<pre>";print_r($results);exit;
+                        foreach ($results as $ware_result) {
+                            //$warehouse_name =  $ware_result['short_name'];
+                            $warehouse_location_type = str_replace(' ', '', $ware_result['location_type']);
+                            $accessorials            = $ware_result['accessorials'];
+                            $accessorials            = explode(',', $accessorials);
+                            //print_r($accessorials);
+                            $accessorialsdisplay     = count($accessorials);
+                            $print_accessorials      = '';
+                            for ($modz = 0; $modz < $accessorialsdisplay; $modz++) {
+                                
+                                //$print_accessorials ="<p>".$accessorials[$modz]."</p>" 
+                                if ($accessorials[$modz] == '1') {
+                                    $print_accessorials .= "<string>ORIGIN_LIFT_GATE</string>";
+                                }
+                                if ($accessorials[$modz] == '2') {
+                                    $print_accessorials .= "<string>ORIGIN_LIMITED_PU</string>";
+                                }
+                                if ($accessorials[$modz] == '3') {
+                                    $print_accessorials .= "<string>ORIGIN_INSIDE_PU</string>";
+                                }
+                                if ($accessorials[$modz] == '4') {
+                                    $print_accessorials .= "<string>ORIGIN_CALL_FOR_APPT</string>";
+                                }
+                            }
+                            //echo $print_accessorials;
+?>
+	<input type="hidden" value="<?php
+                            echo $warehouse_location_type;
+?>" id="hidden_warehouse_location" />
+	<?php
+                            $warehouse_postcode = $ware_result['cmpny_postcode'];
+                            $city               = $ware_result['city'];
+                            $state              = $ware_result['state'];
+                            //$location_type = $ware_result['location_type'];
+?>
+	<input type="hidden" value="<?php
+                            echo $warehouse_postcode;
+?>" id="warehouse_postcode" />
+	<?php
+                        }
+                        
+                        $pro_names .= '<li>' . $product_name . '</li>';
+                        
+                        $pro_item .= '<RatesRequest_Item>
+                                        <Description>' . $product_description . '</Description>
+                                        <PackagingCode>Palletized</PackagingCode>
+                                        <Quantity>' . $quantity . '</Quantity>
+                                        <LinearFeet>0</LinearFeet>
+                                        <Dimensions>
+                                          <Length>' . $freight_length . '</Length>
+                                          <Width>' . $freight_width . '</Width>
+                                          <Height>' . $freight_height . '</Height>
+                                          <UnitOfMeasure>IN</UnitOfMeasure>
+                                        </Dimensions>
+                                        <FreightClass>' . $freight_class . '</FreightClass>
+                                        <Weight>
+                                          <WeightAmt>' . $weight . '</WeightAmt>
+                                          <UnitOfMeasure>LBS</UnitOfMeasure>
+                                        </Weight>
+                                        <Nmfc>' . $nmfc . '</Nmfc>
+                                      </RatesRequest_Item>';
+                    }
+?>
+	<div class="freight_box"  id="freight_box<?php
+                    echo $product_id;
+?>">
+		<?php //if($start == 1) { 
+?>
+		<div id="fre_ship">
+			<p style="font-weight:bold;">Choose a carrier for items shipping from
+				<?php
+                    echo $city;
+?>
+				,
+				<?php
+                    echo $state;
+?>
+				:</p>
+		</div>
+		<?php //} 
+?>
+		<ul>
+			<?php
+                    echo $pro_names;
+?>
+		</ul>
+		<div id="ajax_response<?php
+                    echo $product_id;
+?>">
+			<?php
+                    $xml = '<?xml version="1.0" encoding="utf-8"?>
+                            <soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+                              <soap12:Body>
+                                <GetRates xmlns="http://freightcenter.com/API/V04/">
+                                  <request>
+                                    <LicenseKey>3BDA740C-FF39-4BDC-AB49-B0A3C08E23B4</LicenseKey>
+                                     <Username>'.$freightuser.'</Username>
+									<Password>'.$freightpwd.'</Password>
+                                    <OriginPostalCode>' . $warehouse_postcode . '</OriginPostalCode>
+                                    <OriginLocationType>' . $warehouse_location_type . '</OriginLocationType>
+                                    <DestinationPostalCode>' . $address . '</DestinationPostalCode>
+                                    <DestinationLocationType>'.$new_doc_type.'</DestinationLocationType>
+                                    <Items>' . $pro_item . '</Items>
+									  <Accessorials>' . $print_accessorials . '</Accessorials>
+                                    <Filters>
+                                      <Mode>LTL</Mode>
+                                      <IncludeWhiteGlove>false</IncludeWhiteGlove>
+                                      <IncludeMotorcycleRates>false</IncludeMotorcycleRates>
+                                      <CarrierFilter>
+                                        <CarrierFilterType>INCLUDE</CarrierFilterType>
+                                        ' . $carrier_multi_rate . '
+                                      </CarrierFilter>
+                                    </Filters>
+                                  </request>
+                                </GetRates>
+                              </soap12:Body>
+                            </soap12:Envelope>';
+                    
+                    $apiurl = $apirateurl;
+                    
+                    $headers = array(
+                        "POST  /V04/rates.asmx HTTP/1.1",
+                        "Host: " . $host . "",
+                        "Content-Type: text/xml; charset=utf-8",
+                        "Content-length: " . strlen($xml)
+                    );
+                    //print_r($xml);
+                    
+                    /* send curl request to get active carriers */
+                    $soap_do = curl_init();
+                    curl_setopt($soap_do, CURLOPT_URL, $apiurl);
+                    curl_setopt($soap_do, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($soap_do, CURLOPT_SSL_VERIFYPEER, false);
+                    curl_setopt($soap_do, CURLOPT_SSL_VERIFYHOST, false);
+                    curl_setopt($soap_do, CURLOPT_POST, true);
+                    curl_setopt($soap_do, CURLOPT_CONNECTTIMEOUT, 0);
+                    curl_setopt($soap_do, CURLOPT_TIMEOUT, 400);
+                    curl_setopt($soap_do, CURLOPT_HTTPHEADER, $headers);
+                    curl_setopt($soap_do, CURLOPT_POSTFIELDS, $xml);
+                    
+                    $result = curl_exec($soap_do);
+                    
+                    curl_close($soap_do);
+                    
+                    $p = xml_parser_create();
+                    xml_parse_into_struct($p, $result, $vals, $index);
+                    xml_parser_free($p);
+                    //echo '<pre>'; print_r($vals);
+                    $vals['5']['value'];
+                    if ($vals['5']['value'] == 'ERROR') {
+?>
+			<div>
+			<input type="radio" style="display:none" class="ajax" id="s_method_flatrate_flatrate" value="" name="shipping_method">
+				<p> There was a problem with the freight.  Do you want to check-out with only non-freight products? </p>
+				<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button>
+			</div>
+			<?php
+                    } else if ($vals['5']['value'] == 'WARNING') {
+?>
+			<div>
+			<input type="radio" style="display:none" class="ajax" id="s_method_flatrate_flatrate" value="" name="shipping_method">
+				<p> There was a problem with the freight.  Do you want to check-out with only non-freight products? </p>
+				<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button>
+			</div>
+			<?php
+                    } else if (empty($vals)) {
+?>
+			<div>
+			<input type="radio" style="display:none" class="ajax" id="s_method_flatrate_flatrate" value="" name="shipping_method">
+				<p> There was a problem with the freight.  Do you want to check-out with only non-freight products? </p>
+				<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button>
+			</div>
+			<?php
+                    } else {
+                        $xmlResponseArray = array();
+                        foreach ($vals as $charges) {
+                            
+                            if (in_array("TOTALCHARGE", $charges)) {
+                                $xmlResponseArray['TOTALCHARGE'][] = $charges['value'];
+                            }
+                            if (in_array("SERVICENAME", $charges)) {
+                                $xmlResponseArray['SERVICENAME'][] = $charges['value'];
+                            }
+                            if (in_array("SERVICEDAYS", $charges)) {
+                                $xmlResponseArray['SERVICEDAYS'][] = $charges['value'];
+                            }
+                            if (in_array("RATEID", $charges)) {
+                                $xmlResponseArray['RATEID'][] = $charges['value'];
+                            }
+                        }
+                        $xmlResponse    = array();
+                        $countedCharges = count($xmlResponseArray['TOTALCHARGE']);
+                        
+                        //echo    $Carrierdisplay;
+                        for ($j = 0; $j < $Carrierdisplay; $j++) {
+                            $xmlResponse[$j][] = $xmlResponseArray['TOTALCHARGE'][$j];
+                            $xmlResponse[$j][] = $xmlResponseArray['SERVICENAME'][$j];
+                            $xmlResponse[$j][] = $xmlResponseArray['SERVICEDAYS'][$j];
+                            $xmlResponse[$j][] = $xmlResponseArray['RATEID'][$j];
+                        }
+?>
+			<!--	 <h4>Select a carrier rate</h4> -->
+			<?php
+                        //	echo '<pre>'; print_r($xmlResponse);
+                        foreach ($xmlResponse as $xmlResponse2) {
+                            $total_charge   = $xmlResponse2[0];
+                            $carriers_value = $xmlResponse2[1];
+                            $business_day   = $xmlResponse2[2];
+                            $RATEID         = $xmlResponse2[3];
+                            
+                            if ($total_charge == '') {
+?>
+			<!--<div><p>
+							“There a problem with the freight.  Do you want to check-out with only non-freight products?”  
+							Please click...
+							</p>
+							<button  onclick="removefreight('yes')" class="button" title="Remove Freight Products" type="button"><span><span>Yes</span></span></button></div> -->
+			
+			<?php
+                            } else {
+                                
+                                /* if($subtotal > $discount_amount){
+                                //echo $total_charge;
+                                if($total_charge < $discount_price){
+                                } else{
+                                $total_charge = $discount_price;
+                                }
+                                } */
+                                //echo $total_charge;
+                                if ($markup == 'none') {
+                                    //$gettotal = $myPrice;
+                                    $gett = $total_charge;
+                                }
+                                
+                                if ($markup == 'markup') {
+                                    $gett = $total_charge;
+                                    if ($markup_type == 'percent') {
+                                        $markup_price = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                                        $gettotal_pr  = ($gett * $markup_price) / 100;
+                                        $gett         = $gett + $gettotal_pr;
+                                        
+                                    } else {
+                                        $gett = $gett + $markup_price;
+                                        
+                                    }
+                                }
+                                
+                                if ($markup == 'discount') {
+                                    $gett = $total_charge;
+                                    if ($markup_type == 'percent') {
+                                        $markup_price = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                                        $gettotal_pr  = ($gett * $markup_price) / 100;
+                                        $gett         = $gett - $gettotal_pr;
+                                    } else {
+                                        $gett = $gett - $markup_price;
+                                    }
+                                }
+                                
+?>
+			<div style="display: none; height: 35px; margin-top: 20px;" class="pls-wait"> <span id="loader_loctype<?php
+                                echo $product_id;
+?>"> <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php
+                                echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>"> </span> <span>Loading Carrier Rates</span> </div>
+			<div class="ajax-result" id="ajax_result<?php
+                                print $product_id;
+?>">
+				<table>
+					<tr>
+						<td width="20"><input type="radio" class="ajax" value="ajax_response" name="shipping<?php
+                                print $product_id;
+?>" onclick="ajaxcallnew('<?php
+                                print $product_id;
+?>','<?php
+                                print $gett;
+?>','<?php
+                                echo $quote_id;
+?>','<?php
+                                echo $carriers_value;
+?>','<?php
+                                echo $RATEID;
+?>',<?php
+                                echo $business_day;
+?>, '<?php
+                                echo $total_charge;
+?>');" id="ajax<?php
+                                print $product_id;
+?>" /></td>
+						<td><label for="ajax<?php
+                                print $product_id;
+?>"><span class="car_show">
+								<?php
+                                echo $carriers_value;
+?>
+								</span> <span style="display:none;" id="apply_rate<?php
+                                echo $product_id;
+?>"> <img class="v-middle" title="Applying carrier rate..." alt="Applying carrier rate..." src="<?php
+                                echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>" /> </span></label>
+							<br/>
+							Estimated Transit Time:
+							<?php
+                                echo $business_day;
+?>
+							Business days </br>
+							<?php
+                                if ($gett < $total_charge) {
+?>
+							Cost: $
+							<?php
+                                    print $total_cha = number_format($total_charge, 2, '.', ',');
+?>
+							</br>
+							Discount: -$
+							<?php
+                                    $discount_gt = $total_charge - $gett;
+                                    echo $discount_gt = number_format($discount_gt, 2, '.', ',');
+?>
+							</br>
+							<?php
+                                }
+?>
+							You Pay: $
+							<?php
+                                echo $gett = number_format($gett, 2, '.', ',');
+?></td>
+					</tr>
+				</table>
+				<div style="clear:both;height:16px;"></div>
+			</div>
+			<?php
+                            }
+                        }
+                    }
+?>
+		</div>
+	</div>
+	<?php
+                }
+                if ($non_freight != NULL) {
+?>
+	<hr />
+	<div class="freight_box">
+		<h3>Parcel (Non-Freight) Shipping</h3>
+		<p>The following items do not require freight shipping. These items ship via parcel providers:</p>
+		<ul>
+			<?php
+                    foreach ($non_freight as $non) {
+?>
+			<li>
+				<?php
+                        echo $non['name'];
+?>
+			</li>
+			<?php
+                    }
+?>
+		</ul>
+	</div>
+	<?php
+                }
+?>
+</div>
+<?php
+            }
+        } else {
+?>
+<div class="freight_ship" <?php
+            echo $freight_box;
+?>>
+<?php
+            if ($myarray != NULL) {
+?>
+<input type="hidden" value="<?php
+                echo $this->getBaseUrl();
+?>" id="baseurl" />
+<input type="hidden" value="<?php
+                echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>" id="loader_url" />
+<input type="hidden" value="<?php
+                echo $allids;
+?>" id="freight_ids" />
+<input type="hidden" value="<?php
+                echo $address;
+?>" id="post_address" />
+<input type="hidden" value="<?php
+                echo $quote_id;
+?>" id="quoteid" />
+<?php
+                $current_freight_user = Mage::getStoreConfig('carriers/freightcenter/dest_loctype');
+                $CarrierCode          = Mage::getStoreConfig('carriers/freightcenter/positions');
+                $Carrierdisplay       = Mage::getStoreConfig('carriers/freightcenter/carrier_display');
+                $MarkupType           = Mage::getStoreConfig('carriers/freightcenter/markup_type');
+                $MarkupPrice          = Mage::getStoreConfig('carriers/freightcenter/markup_price');
+                $CarrierCode          = explode(",", $CarrierCode);
+                //echo count($CarrierCode);
+                //if( $Carrierdisplay > count($CarrierCode))
+                // {
+                //	$Carrierdisplay = count($CarrierCode);
+                // }
+?>
+<!--	<div id="carrier_radio_select_div"></div>
+		<p style="font-size: 15px; font-weight: 600;">Select Carrier</p>
+		<?php
+                //  for($modz=0;$modz<$Carrierdisplay; $modz++){
+?>
+		<input type="radio" class="ajax_new" value="<?php
+                echo $CarrierCode[$modz];
+?>" name="Carrier"  id="ajax_new" onclick="get_carrier();"/>
+		<label for="ajax_new"><?php
+                echo $CarrierCode[$modz];
+?> </br>
+       </label> -->
+
+<?php
+                //  }
+                $crra = explode(",", $current_freight_user);
+                if (count($crra) < 0) {
+                } else {
+?>
+<div> 
+	<!--   <h4>Freight Cost</h4>-->
+	<h4>Select Location Type</h4>
+	<select class="required-entry required-entry select" onchange="apicallrate_location(this.value);" name="location_type" id="location_type">
+		<?php
+                    foreach ($crra as $crr) {
+?>
+		<option value="<?php
+                        echo str_replace(' ', '', $crr);
+?>">
+		<?php
+                        echo $crr;
+?>
+		</option>
+		<?php
+                    }
+?>
+	</select>
+</div>
+<?php
+                }
+?>
+<div style="margin-top: 10px"> 
+	<!--<h4>Select Extra Services</h4>-->
+	<div class="accessories">
+		<?php //echo $crra['0']; ?>
+		<?php  if($crra['0'] == 'Residential') { ?>
+        <input onclick="apicallrateRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" /><label for="resident1" class="access_class">Threshold Delivery</label>
+     <?php } else if($crra['0'] == 'Business With Dock or Forklift') {?>
+       <input onclick="apicallrateRates();" id="buswith1" type="checkbox" value="DEST_NOTIFY" /><label for="buswith1" class="access_class">Call before Delivery</label>
+        <input onclick="apicallrateRates();" id="buswith2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswith2" class="access_class">Threshold Delivery</label>
+        <input onclick="apicallrateRates();" id="buswith3" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswith3" class="access_class">Limited Access Delivery</label>
+        
+  <?php  }  else if($crra['0'] == 'Business Without Dock or Forklift') { ?>
+        <input onclick="apicallrateRates();" id="buswithout1" type="checkbox" value="DEST_NOTIFY" /><label for="buswithout1" class="access_class">Call before Delivery</label>
+                    <input onclick="apicallrateRates();" id="buswithout2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswithout2" class="access_class">Threshold Delivery</label>
+                    <input onclick="apicallrateRates();" id="buswithout4" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswithout4" class="access_class">Limited Access Delivery</label>
+        
+   <?php }  else if($crra['0'] == 'Construction Site') { ?>
+       <input onclick="apicallrateRates();" id="const1" type="checkbox" value="DEST_LIFT_GATE" /><label for="const1" class="access_class">Lift Gate at Delivery Point</label>
+       
+  <?php  }  else if($crra['0'] == 'Convention Center or Tradeshow') { ?>
+       <input onclick="apicallrateRates();" id="convent1" type="checkbox" value="DEST_LIFT_GATE" /><label for="convent1" class="access_class">Lift Gate at Delivery Point</label>
+       
+   <?php } else if($crra['0'] == 'Terminal') { ?>
+       <input onclick="apicallrateRates();" id="terminal1" type="checkbox" value="DEST_NOTIFY" /><label for="terminal1" class="access_class">Call before Delivery</label>
+       
+    <?php } ?>
+            <!--  <input onclick="apicallrateRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" />
+            <label for="resident1" class="access_class">Threshold Delivery</label>
+          <input onclick="getaccessRates();" id="resident2" type="checkbox" value="DEST_LIFT_GATE" />
+            <label for="resident2" class="access_class">Lift Gate at Delivery Point</label>-->
+        </div>
+</div>
+<?php
+            }
+            
+?>
+<hr />
+<div class="freight_box">
+	<h3>Freight Shipping:</h3>
+	<ul>
+		<?php
+            $attribute_f = Mage::getModel('eav/config')->getAttribute('catalog_product', 'freight_class');
+            foreach ($attribute_f->getSource()->getAllOptions(true, true) as $opt_menuf) {
+                $f_attribute[$opt_menuf['value']] = $opt_menuf['label'];
+            }
+            
+            $attribute = Mage::getModel('eav/config')->getAttribute('catalog_product', 'packaging_type');
+            foreach ($attribute->getSource()->getAllOptions(true, true) as $opt_menu1) {
+                $m_attribute[$opt_menu1['value']] = $opt_menu1['label'];
+            }
+            $packaging_type = $m_attribute[$mainarray['packaging_type']];
+            
+            $attribute1 = Mage::getModel('eav/config')->getAttribute('catalog_product', 'origin_warehouse');
+            foreach ($attribute1->getSource()->getAllOptions(true, true) as $opt_menu) {
+                $m1_attribute[$opt_menu['value']] = $opt_menu['label'];
+            }
+            
+            /* combine products by warehouse */
+            
+            foreach ($myarray as $mainarray) {
+                $product_id          = $mainarray['entity_id'];
+                //$product_descriptions = $mainarray['description'];
+                $product_description = str_replace(' ', '', $mainarray['description']);
+                $product_name        = $mainarray['name'];
+                $freight_length      = $mainarray['freight_length'];
+                $freight_width       = $mainarray['freight_width'];
+                $freight_height      = $mainarray['freight_height'];
+                $nmfc                = $mainarray['nmfc'];
+                //$freight_class = $mainarray['freight_class'];
+                $quantity            = $cart_products[$product_id];
+                $weight              = ($mainarray['weight'] * $quantity);
+                $freight_class       = $f_attribute[$mainarray['freight_class']];
+                
+                $ware_id        = $m1_attribute[$mainarray['origin_warehouse']];
+                $resource       = Mage::getSingleton('core/resource');
+                $readConnection = $resource->getConnection('core_read');
+                $tableNamep     = $resource->getTableName('brst_ship_warehouses');
+                $queryp         = "SELECT * FROM  $tableNamep WHERE short_name = '$ware_id' LIMIT 10";
+                $results        = $readConnection->fetchAll($queryp);
+?>
+		<li>
+			<?php
+                echo $product_name;
+?>
+		</li>
+		<?php
+                
+                foreach ($results as $ware_result) {
+                    $warehouse_name          = $ware_result['short_name'];
+                    //$warehouse_location_types =  $ware_result['location_type'];
+                    $warehouse_location_type = str_replace(' ', '', $ware_result['location_type']);
+                    $ware_cmpny_postcode     = $ware_result['cmpny_postcode'];
+                }
+                
+?>
+		<input type="hidden" value="<?php
+                echo $product_id;
+?>" name="<?php
+                echo $product_id;
+?>" id="product_id"/>
+		<input type="hidden" value="<?php
+                echo $product_description;
+?>" name="<?php
+                echo $product_description;
+?>" id="product_description"/>
+		<input type="hidden" value="<?php
+                echo $product_name;
+?>" name="<?php
+                echo $product_name;
+?>" id="product_name"/>
+		<input type="hidden" value="<?php
+                echo $freight_length;
+?>" name="<?php
+                echo $freight_length;
+?>" id="freight_length"/>
+		<input type="hidden" value="<?php
+                echo $freight_width;
+?>" name="<?php
+                echo $freight_width;
+?>" id="freight_width"/>
+		<input type="hidden" value="<?php
+                echo $freight_height;
+?>" name="<?php
+                echo $freight_height;
+?>" id="freight_height"/>
+		<input type="hidden" value="<?php
+                echo $nmfc;
+?>" name="<?php
+                echo $nmfc;
+?>" id="nmfc"/>
+		<input type="hidden" value="<?php
+                echo $weight;
+?>" name="<?php
+                echo $weight;
+?>" id="weight"/>
+		<input type="hidden" value="<?php
+                echo $freight_class;
+?>" name="<?php
+                echo $freight_class;
+?>" id="freight_class"/>
+		<input type="hidden" value="<?php
+                echo $packaging_type;
+?>" name="<?php
+                echo $packaging_type;
+?>" id="packaging_type"/>
+		<input type="hidden" value="<?php
+                echo $address;
+?>" name="<?php
+                echo $address;
+?>" id="address"/>
+		<input type="hidden" value="<?php
+                echo $current_page;
+?>" name="<?php
+                echo $current_page;
+?>" id="current_page"/>
+		<input type="hidden" value="<?php
+                echo $ware_cmpny_postcode;
+?>" name="<?php
+                echo $ware_cmpny_postcode;
+?>" id="ware_cmpny_postcode"/>
+		<input type="hidden" value="<?php
+                echo $warehouse_name;
+?>" name="<?php
+                echo $warehouse_name;
+?>" id="warehouse_name"/>
+		<input type="hidden" value="<?php
+                echo $warehouse_location_type;
+?>" name="<?php
+                echo $warehouse_location_type;
+?>" id="warehouse_location_type"/>
+		<input type="hidden" value="<?php
+                echo $quote_id;
+?>" name="<?php
+                echo $quote_id;
+?>" id="quote_id"/>
+		<input type="hidden" onclick="apicallrate();" name="freight Products" id="newCheck<?php
+                echo $product_id;
+?>" />
+		<?php
+                
+                
+            }
+            
+?>
+		<script>
+jQuery( document ).ready(function() {
+ //alert('hello');
+ apicallrate();
+});
+</script>
+		<div style="display: block; height: 35px; margin-top: 20px;" id="pls_wait"> <span id="loader_loctype<?php
+            echo $product_id;
+?>"> <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php
+            echo $this->getSkinUrl('images/opc-ajax-loader.gif');
+?>"> </span> <span>Loading Carrier Rates</span> </div>
+		<div id="ajax_response_else"></div>
+	</ul>
+</div>
+<?php
+            if ($non_freight != NULL) {
+?>
+<hr />
+<div class="freight_box">
+<h3>Parcel (Non-Freight) Shipping</h3>
+<p>The following items do not require freight shipping. These items ship via parcel providers:</p>
+<ul>
+	<?php
+                foreach ($non_freight as $non) {
+?>
+	<li>
+		<?php
+                    echo $non['name'];
+?>
+	</li>
+	<?php
+                }
+?>
+</ul>
+<?php
+            }
+?>
+<?php
+        }
+    }
+?>
+<div class="sp-methods"<?php
+    echo $ship_style;
+?>>
+<?php
+    $shippingCodePrice = array();
+    $_sole             = count($_shippingRateGroups) == 1;
+    foreach ($_shippingRateGroups as $code => $_rates):
+?>
+<div <?php
+        if ($code == 'freightcenter') {
+?>style="display: none;" <?php
+        } else {
+?> class="other_method"<?php
+        }
+?>
+>
+	 <strong>
+		<?php
+        echo $this->escapeHtml($this->getCarrierName($code));
+?>
+		</strong>
+		<div style="clear:both;"></div>
+		<?php
+        $_sole = $_sole && count($_rates) == 1;
+        foreach ($_rates as $_rate):
+?>
+		<?php
+            $shippingCodePrice[] = "'" . $_rate->getCode() . "':" . (float) $_rate->getPrice();
+?>
+		<?php
+            if ($_rate->getErrorMessage()):
+?>
+		<ul class="messages">
+			<li class="error-msg">
+				<ul>
+					<li>
+						<?php
+                echo $this->escapeHtml($_rate->getErrorMessage());
+?>
+					</li>
+				</ul>
+			</li>
+		</ul>
+		<?php
+            else:
+?>
+		<?php
+                if ($_sole):
+?>
+		<span class="no-display">
+		<input name="shipping_method" type="radio" value="<?php
+                    echo $_rate->getCode();
+?>" id="s_method_<?php
+                    echo $_rate->getCode();
+?>" checked="checked" />
+		</span>
+		<?php
+                else:
+?>
+		<input name="shipping_method" type="radio" value="<?php
+                    echo $_rate->getCode();
+?>" id="s_method_<?php
+                    echo $_rate->getCode();
+?>"<?php
+                    if ($code == 'freightcenter' && $non_freight == NULL) {
+                        echo 'checked';
+                    }
+?> class="radio"/>
+		<?php
+                    if ($_rate->getCode() === $this->getAddressShippingMethod()):
+?>
+		<script type="text/javascript">
+                            //<![CDATA[
+                                lastPrice = <?php
+                        echo (float) $_rate->getPrice();
+?>;
+                            //]]>
+                        </script>
+		<?php
+                    endif;
+?>
+		<?php
+                endif;
+?>
+		<label for="s_method_<?php
+                echo $_rate->getCode();
+?>">
+			<?php
+                echo $this->escapeHtml($_rate->getMethodTitle());
+?>
+			<?php
+                $_excl = $this->getShippingPrice($_rate->getPrice(), $this->helper('tax')->displayShippingPriceIncludingTax());
+?>
+			<?php
+                $_incl = $this->getShippingPrice($_rate->getPrice(), true);
+?>
+			<?php
+                echo $_excl;
+?>
+			<?php
+                if ($this->helper('tax')->displayShippingBothPrices() && $_incl != $_excl):
+?>
+			(
+			<?php
+                    echo $this->__('Incl. Tax');
+?>
+			<?php
+                    echo $_incl;
+?>
+			)
+			<?php
+                endif;
+?>
+		</label>
+		<?php
+            endif;
+?>
+		<?php
+        endforeach;
+?>
+	</div>
+	<?php
+    endforeach;
+?>
+</div>
+<script type="text/javascript">
+//<![CDATA[
+    <?php
+    if (!empty($shippingCodePrice)):
+?>
+        var shippingCodePrice = {<?php
+        echo implode(',', $shippingCodePrice);
+?>};
+    <?php
+    endif;
+?>
+
+    $$('input[type="radio"][name="shipping_method"]').each(function(el){
+        Event.observe(el, 'click', function(){
+            if (el.checked == true) {
+                var getShippingCode = el.getValue();
+                <?php
+    if (!empty($shippingCodePrice)):
+?>
+                    var newPrice = shippingCodePrice[getShippingCode];
+                    if (!lastPrice) {
+                        lastPrice = newPrice;
+                        quoteBaseGrandTotal += newPrice;
+                    }
+                    if (newPrice != lastPrice) {
+                        quoteBaseGrandTotal += (newPrice-lastPrice);
+                        lastPrice = newPrice;
+                    }
+                <?php
+    endif;
+?>
+                checkQuoteBaseGrandTotal = quoteBaseGrandTotal;
+                return false;
+            }
+       });
+    });
+//]]>
+</script>
+<?php
+endif;
+?>
+<script>
+jQuery.noConflict();  
+</script>

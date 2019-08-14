@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+     <modules>
+        <Freightcenters_Freight>
+            <active>true</active>
+            <codePool>local</codePool>
+        </Freightcenters_Freight>
+    </modules>
+</config>

@@ -1,0 +1,137 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category    design
+ * @package     base_default
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+/**
+ * @var $this Mage_Tax_Block_Checkout_Shipping
+ * @see Mage_Tax_Block_Checkout_Shipping
+ */
+?>
+<?php if ($this->displayBoth()):?>
+<tr>
+    <td style="<?php echo $this->getStyle() ?>" class="a-right" colspan="<?php echo $this->getColspan(); ?>">
+        <?php echo $this->getExcludeTaxLabel() ?>
+    </td>
+    <td style="<?php echo $this->getStyle() ?>" class="a-right">
+        <?php echo $this->helper('checkout')->formatPrice($this->getShippingExcludeTax()) ?>
+    </td>
+</tr>
+<tr>
+    <td style="<?php echo $this->getStyle() ?>" class="a-right" colspan="<?php echo $this->getColspan(); ?>">
+        <?php echo $this->getIncludeTaxLabel() ?>
+    </td>
+    <td style="<?php echo $this->getStyle() ?>" class="a-right">
+        <?php echo $this->helper('checkout')->formatPrice($this->getShippingIncludeTax()) ?>
+    </td>
+</tr>
+<?php elseif($this->displayIncludeTax()) : ?>
+<tr>
+    <td style="<?php echo $this->getStyle() ?>" class="a-right" colspan="<?php echo $this->getColspan(); ?>">
+        <?php echo $this->getTotal()->getTitle() ?>
+    </td>
+    <td style="<?php echo $this->getStyle() ?>" class="a-right">
+        <?php echo $this->helper('checkout')->formatPrice($this->getShippingIncludeTax()) ?>
+    </td>
+</tr>
+<?php else:?>
+
+	<?php 
+	
+	$items = Mage::getSingleton('checkout/session')->getQuote()->getAllItems();
+	foreach($items as $item) {
+    $id = $item->getProductId();
+	 $product = Mage::getModel('catalog/product')->load($id);
+    $ship_via_freight = $product->getData('ship_via_freight');
+	if($ship_via_freight == 1){
+	$ship_freight = 1;
+	}else{
+	$ship_via_not_freight = 0;
+	}
+	}
+    if($ship_via_not_freight!=1) {
+	?>
+	<tr>
+    <td style="<?php echo $this->getStyle() ?>" class="a-right" colspan="<?php echo $this->getColspan(); ?>">
+        <?php echo $this->escapeHtml($this->getTotal()->getTitle()) ?>
+    </td>
+	<td style="<?php echo $this->getStyle() ?>" class="a-right">
+        <?php echo $this->helper('checkout')->formatPrice($this->getShippingExcludeTax()) ?>
+    </td>
+	</tr>
+	<?php
+	}
+	else{
+	
+	} 
+	
+
+	?>
+    
+
+<?php endif;?>
+
+<?php $currenturl = Mage::helper('core/url')->getCurrentUrl();
+    $resource = Mage::getSingleton('core/resource');
+    $connection = $resource->getConnection('core_write');
+    $session = Mage::getSingleton('checkout/session');
+    $quoteid  = $session->getQuoteId();
+
+    $items = Mage::getSingleton('checkout/session')->getQuote()->getAllItems();
+	$myPrice= '';
+    foreach($items as $item) {
+        $getid = $item->getProductId();
+
+        $select = "Select * from `brst_freight_shipping` where quote_id='$quoteid' AND product_id='$getid' AND mark = '1'";
+        $getselect = $connection->query($select);
+        $pro_data = $getselect->fetchAll();
+		 $productid = $item->getProductId();
+    $proModel = Mage::getModel('catalog/product')->load($productid);
+  $isfreight = $proModel['ship_via_freight'];
+        if($pro_data != NULL) {
+            $getprice = $pro_data[0]['shipping_charge'];
+			$myPrice = $getprice + $myPrice;
+			
+            $getcarrier = $pro_data[0]['carrier_name']; 
+           
+    }
+} 
+$myPrice = number_format($myPrice, 2, '.', ',');
+if(strstr($currenturl,'/checkout/cart')) { ?>
+           <!-- <tr>
+                <td colspan="1" class="a-right" style="width: 150px;">Freight Charges(<?php //echo $getcarrier; ?>) & Handling</td>
+                <td class="a-right" style=""><span class="price"><?php //echo '$'.$myPrice; ?></span></td>
+            </tr> -->
+        <?php }
+	//echo $ship_freight ;	
+if($ship_freight == 1){
+ if(strstr($currenturl,'/checkout/onepage/')) { ?>
+            <tr>
+                <td style="width: 350px;" colspan="3" class="a-right">Freight Charges</td>
+                <td class="a-right last">
+                    <span class="price"><?php echo '$'.$myPrice; ?></span>
+                </td>
+            </tr>
+        <?php  }
+		}
+		?>

@@ -1,0 +1,107 @@
+<?php
+/**
+ * Magento
+ *
+ * NOTICE OF LICENSE
+ *
+ * This source file is subject to the Academic Free License (AFL 3.0)
+ * that is bundled with this package in the file LICENSE_AFL.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://opensource.org/licenses/afl-3.0.php
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@magentocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade Magento to newer
+ * versions in the future. If you wish to customize Magento for your
+ * needs please refer to http://www.magentocommerce.com for more information.
+ *
+ * @category    design
+ * @package     base_default
+ * @copyright   Copyright (c) 2013 Magento Inc. (http://www.magentocommerce.com)
+ * @license     http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
+ */
+?>
+<?php if ($this->getCheckout()->getStepData('shipping_method', 'complete')): ?>
+<dt class="complete">
+    <?php echo $this->__('Shipping Method') ?> <span class="changelink"><span class="separator">|</span> <a
+        href="#shipping_method"
+        onclick="checkout.changeSection('opc-shipping_method'); return false;"><?php echo $this->__('Change') ?></a></span>
+</dt>
+<dd class="complete" style="min-height: 90px;">
+    <?php if ($this->getShippingMethod()): ?>
+    <?php  /* freight shipping price */
+    $connection = Mage::getSingleton('core/resource')->getConnection('core_read');
+    $session = Mage::getSingleton('checkout/session');
+    $quoteid  = $session->getQuoteId();
+
+    $items = Mage::getSingleton('checkout/session')->getQuote()->getAllItems();
+    $gettotal = '';
+    foreach($items as $item) {
+        //$getqty = $item->getQty();
+        $getid = $item->getProductId();
+		  $product = Mage::getModel('catalog/product')->load($getid);
+    $ship_via_freight = $product->getData('ship_via_freight'); 
+if($ship_via_freight!=1) { 
+	$non_freight[] = $product;
+	?>
+        <!--<style>.other_method { display:none; } </style>-->
+    <?php } else {
+        $myarray[] = $product;
+        $allids .= $id.' '.$qtyordered.';';
+    }
+	
+	
+        $select = "Select * from `brst_freight_shipping` where quote_id=$quoteid AND product_id=$getid AND mark = '1'";
+        $getselect = $connection->query($select);
+        $pro_data = $getselect->fetchAll();
+        if($pro_data != NULL) {
+            $getprice = $pro_data[0]['shipping_charge'];
+            $gettotal += $getprice;
+			
+        }
+    }
+	$gettotal = number_format($gettotal, 2, '.', ',');
+    if($gettotal != NULL) {
+        echo "<div style='height: 45px; '><div style='float: left; width: 95px;'>Freight Charges</div>"."<div style='float: right; padding-top: 12px;'>$".$gettotal.'</div></div>';
+    }
+    if($ship_via_freight == 1){
+    echo "<div id='ship_place' style=''><div style='float: left; width: 125px;'>Non-Freight Charges & Handling</div><div style='float: right; padding-top: 12px;'>"; }
+	else{
+	  echo "<div id='ship_place' style=''><div style='float: left; width: 125px;'>Shipping and Handling</div><div style='float: right; padding-top: 12px;'>";
+	}
+	
+	if($non_freight == NULL){
+	
+	?>
+	<style>
+	#ship_place { display:none; }
+	</style>
+	<?php
+	
+	}
+    //echo $this->getShippingDescription() ?>
+
+    <?php $_excl = $this->getShippingPriceExclTax(); ?>
+    <?php $_incl = $this->getShippingPriceInclTax(); ?>
+    <?php if ($this->helper('tax')->displayShippingPriceIncludingTax()): ?>
+        <?php echo $_incl; ?>
+        <?php else: ?>
+        <?php echo $_excl; ?>
+        <?php endif; ?>
+    <?php if ($this->helper('tax')->displayShippingBothPrices() && $_incl != $_excl): ?>
+        (<?php echo $this->__('Incl. Tax'); ?> <?php echo $_incl; ?>)
+        <?php endif; ?>
+        <?php echo "</div></div>"; ?>
+    <?php else: ?>
+    <?php echo $this->__('Shipping method has not been selected yet') ?>
+    <?php endif; ?>
+</dd>
+<?php else: ?>
+<dt>
+    <?php echo $this->__('Shipping Method') ?>
+</dt>
+<?php endif; ?>
+

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Freightcenter_Frieghtadmin>
+            <version>1.0.1</version>
+        </Freightcenter_Frieghtadmin>
+    </modules>
+
+    <global>
+        <blocks>
+            <frieghtadmin>
+                <class>Freightcenter_Frieghtadmin_Block</class>
+            </frieghtadmin>
+        </blocks>
+    </global>       
+<adminhtml>
+       <layout>
+            <updates>
+                <frieghtadmin>
+                    <file>freightcenter_frieghtadmin.xml</file>
+                </frieghtadmin>
+            </updates>
+        </layout>
+    </adminhtml>
+</config>

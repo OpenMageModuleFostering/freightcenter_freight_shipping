@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/FreightCenter_Freight_Shipping",
+    "type": "magento-module",
+    "license": "OSL",
+    "homepage": "",
+    "description": "FreightCenter Freight Shipping Extension",
+    "authors": [
+    {
+        "name": "FreightCenter, Inc.",
+        "email": "marketing@freightcenter.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}

@@ -1,0 +1,247 @@
+<?php
+class Freightcenter_CustomWare_Adminhtml_CollectController extends Mage_Adminhtml_Controller_Action
+{
+    public function _construct()
+    {
+        $check2 = Mage::getModel('catalog/resource_eav_attribute')->loadByCode('catalog_product','freight_class');
+        if($check2->getId() != NULL) {
+            /* add options to attribute */
+            $freightclasses = array('50','55','60','65','70','77.5','82','92.5','100','110','125','150','175','200','250','300','400','500');
+            /* add options to dropdown attribute */
+            $manufacturer = Mage::getModel('eav/config')->getAttribute('catalog_product','freight_class');
+            foreach ( $manufacturer->getSource()->getAllOptions(true, true) as $option_manu){
+                $manufacturer_attribute[$option_manu['label']] = $option_manu['value'];
+            }
+
+            foreach($freightclasses as $class) {
+                $manufacture = $class;
+
+                /* add option values in manufacturer attribute */
+                $getOption = $manufacturer_attribute[$manufacture];
+                if(!$getOption) {
+                    $arg_attribute          = 'freight_class';
+                    $attribute_model        = Mage::getModel('eav/entity_attribute');
+
+                    $attribute_code         = $attribute_model->getIdByCode('catalog_product', $arg_attribute);
+                    $attribute              = $attribute_model->load($attribute_code);
+
+                    $val['option'] = array($manufacture,$manufacture);
+                    $result = array('value' => $val);
+                    $attribute->setData('option',$result);
+                    $attribute->save();
+                }
+            }
+        }
+        
+        $check9 = Mage::getModel('catalog/resource_eav_attribute')->loadByCode('catalog_product','packaging_type');
+        if($check9->getId() != NULL) {
+            $packagin_types = array('Boxed','Crated','Drums or Barrels','Palletized','Un-packaged');
+            /* add options to dropdown attribute */
+            $package_type = Mage::getModel('eav/config')->getAttribute('catalog_product','packaging_type');
+            foreach ( $package_type->getSource()->getAllOptions(true, true) as $option_menu){
+                $packaging_attribute[$option_menu['label']] = $option_menu['value'];
+            }
+
+            foreach($packagin_types as $types) {
+                $pkg_type = $types;
+
+                /* add option values in manufacturer attribute */
+                $getoption = $packaging_attribute[$pkg_type];
+                if(!$getoption) {
+                    $arg_attribute          = 'packaging_type';
+                    $attribute_model        = Mage::getModel('eav/entity_attribute');
+
+                    $attribute_code         = $attribute_model->getIdByCode('catalog_product', $arg_attribute);
+                    $attribute              = $attribute_model->load($attribute_code);
+
+                    $val['option'] = array($pkg_type,$pkg_type);
+                    $result = array('value' => $val);
+                    $attribute->setData('option',$result);
+                    $attribute->save();
+                }
+            }
+        }
+        /* end adding options */
+    }  
+    
+    public function indexAction()
+    {  
+        // Let's call our initAction method which will set some basic params for each action
+        $this->_initAction()
+            ->renderLayout();
+    }  
+     
+    public function newAction()
+    {  
+        // We just forward the new action to a blank edit form
+        $this->_forward('edit');
+    }  
+     
+    public function editAction()
+    {  
+        $this->_initAction();
+     
+        // Get id if available
+        $id  = $this->getRequest()->getParam('id');
+        $model = Mage::getModel('freightcenter_customware/collect');
+     
+        if ($id) {
+            // Load record
+            $model->load($id);
+     
+            // Check if record is loaded
+            if (!$model->getId()) {
+                Mage::getSingleton('adminhtml/session')->addError($this->__('This warehouse no longer exists.'));
+                $this->_redirect('*/*/');
+     
+                return;
+            }  
+        }  
+     
+        $this->_title($model->getId() ? $model->getName() : $this->__('New Warehouse'));
+     
+        $data = Mage::getSingleton('adminhtml/session')->getBazData(true);
+        if (!empty($data)) {
+            $model->setData($data);
+        }  
+     
+        Mage::register('freightcenter_customware', $model);
+     
+        $this->_initAction()
+            ->_addBreadcrumb($id ? $this->__('Edit Warehouse') : $this->__('New Warehouse'), $id ? $this->__('Edit Warehouse') : $this->__('New Warehouse'))
+            ->_addContent($this->getLayout()->createBlock('freightcenter_customware/adminhtml_collect_edit')->setData('action', $this->getUrl('*/*/save')))
+            ->renderLayout();
+    }
+     
+    public function saveAction()
+    {
+        if ($postData = $this->getRequest()->getPost()) {
+            //echo "<pre>";print_r($postData);exit;
+			if(isset($_POST['accessorials'])){
+			$accessorials = $_POST['accessorials'];
+            $all_acc = implode(',',$accessorials);
+			}
+            else{
+			$all_acc = '';
+			}
+            
+            $model = Mage::getSingleton('freightcenter_customware/collect');
+            $model->setData($postData);
+            $model->setAccessorials($all_acc);
+ 
+            try {
+                $model->save();
+                
+                $check = Mage::getModel('catalog/resource_eav_attribute')->loadByCode('catalog_product','origin_warehouse');
+                if($check->getId() != NULL) {
+                    /* save option to warehouse attribute */
+                    $lastid = $model->short_name;
+                    $org_warehouse = Mage::getModel('eav/config')->getAttribute('catalog_product','origin_warehouse');
+                    foreach ( $org_warehouse->getSource()->getAllOptions(true, true) as $optionmenu){
+                        $warehouse_attribute[$optionmenu['label']] = $optionmenu['value'];
+                    }
+                
+                    $warehouse_origin = $lastid;
+                    /* add option values in manufacturer attribute */
+                    $getprevoption = $warehouse_attribute[$warehouse_origin];
+                    if(!$getprevoption) {
+                        $arg_attribute          = 'origin_warehouse';
+                        $attribute_model        = Mage::getModel('eav/entity_attribute');
+
+                        $attribute_code         = $attribute_model->getIdByCode('catalog_product', $arg_attribute);
+                        $attribute              = $attribute_model->load($attribute_code);
+
+                        $val['option'] = array($warehouse_origin,$warehouse_origin);
+                        $result = array('value' => $val);
+                        $attribute->setData('option',$result);
+                        $attribute->save();
+                    }
+                }
+                
+                Mage::getSingleton('adminhtml/session')->addSuccess($this->__('The warehouse has been saved.'));
+                $this->_redirect('*/*/');
+ 
+                return;
+            }  
+            catch (Mage_Core_Exception $e) {
+                Mage::getSingleton('adminhtml/session')->addError($e->getMessage());
+            }
+            catch (Exception $e) {
+                Mage::getSingleton('adminhtml/session')->addError($this->__('An error occurred while saving this warehouse.'));
+            }
+ 
+            Mage::getSingleton('adminhtml/session')->setBazData($postData);
+            $this->_redirectReferer();
+        }
+    }
+    
+    public function deleteAction()
+    {
+        if ($id = $this->getRequest()->getParam('id')) {
+            
+            $diog_collection = Mage::getModel('freightcenter_customware/collect')
+                ->load($id);
+				$short_name = $diog_collection['short_name'];
+
+            try {
+                $diog_collection->delete();
+                
+                $check = Mage::getModel('catalog/resource_eav_attribute')->loadByCode('catalog_product','origin_warehouse');
+                if($check->getId() != NULL) {
+                    /* delete from warehouse attribute */
+                    $org_warehouse = Mage::getModel('eav/config')->getAttribute('catalog_product','origin_warehouse');
+                    $collection = Mage::getResourceModel('eav/entity_attribute_option_collection')
+                        ->setAttributeFilter($org_warehouse->getId())
+                        ->setStoreFilter($org_warehouse->getStoreId())
+                        ->load();
+                    foreach ($collection as $option) {
+                        $value = $option->value;
+                        if($value == $short_name) {
+                            $option->delete();
+                        }
+                    }
+                }
+                
+                $this->_getSession()->addSuccess($this->__('The Warehouse has been deleted.'));
+            } catch (Exception $e) {
+                $this->_getSession()->addError($e->getMessage());
+            }
+        }
+       $this->_redirect('*/*/');
+    }
+    
+    public function messageAction()
+    {
+        $data = Mage::getModel('freightcenter_customware/collect')->load($this->getRequest()->getParam('id'));
+        echo $data->getContent();
+    }
+     
+    /**
+     * Initialize action
+     *
+     * Here, we set the breadcrumbs and the active menu
+     *
+     * @return Mage_Adminhtml_Controller_Action
+     */
+    protected function _initAction()
+    {
+        $this->loadLayout()
+            // Make the active menu match the menu config nodes (without 'children' inbetween)
+            ->_setActiveMenu('freightcenter_customware_collect')
+            ->_title($this->__('Shipping Warehouses'))->_title($this->__('Warehouse'));
+            //->_addBreadcrumb($this->__('Sales'), $this->__('Sales'))
+            //->_addBreadcrumb($this->__('Baz'), $this->__('Baz'));
+         
+        return $this;
+    }
+     
+    /**
+     * Check currently called action by permissions for current user
+     *
+     * @return bool
+     */
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('sales/freightcenter_customware_collect');
+    }
+}

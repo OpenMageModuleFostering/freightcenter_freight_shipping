@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Freightcenters_Freight>
+            <version>1.0.1</version>
+        </Freightcenters_Freight>
+    </modules>
+
+     <frontend>
+        <routers>
+            <arithmetic>
+                <use>standard</use>
+                <args>
+                    <module>Freightcenters_Freight</module>
+                    <frontName>freight</frontName>
+                </args>
+            </arithmetic>
+        </routers>   
+    </frontend>
+</config>

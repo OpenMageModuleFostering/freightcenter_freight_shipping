@@ -1,0 +1,471 @@
+<?php
+
+?>
+<meta http-equiv="Content-Type" content="<?php echo $this->getContentType() ?>" />
+<title><?php echo $this->getTitle() ?></title>
+<meta name="description" content="<?php echo htmlspecialchars($this->getDescription()) ?>" />
+<meta name="keywords" content="<?php echo htmlspecialchars($this->getKeywords()) ?>" />
+<meta name="robots" content="<?php echo htmlspecialchars($this->getRobots()) ?>" />
+<link rel="icon" href="<?php echo $this->getFaviconFile(); ?>" type="image/x-icon" />
+<link rel="shortcut icon" href="<?php echo $this->getFaviconFile(); ?>" type="image/x-icon" />
+<!--[if lt IE 7]>
+<script type="text/javascript">
+//<![CDATA[
+    var BLANK_URL = '<?php echo $this->helper('core/js')->getJsUrl('blank.html') ?>';
+    var BLANK_IMG = '<?php echo $this->helper('core/js')->getJsUrl('spacer.gif') ?>';
+//]]>
+</script>
+<![endif]-->
+<?php echo $this->getCssJsHtml() ?>
+<?php echo $this->getChildHtml() ?>
+<?php echo $this->helper('core/js')->getTranslatorScript() ?>
+<?php echo $this->getIncludes() ?>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+<script type="text/javascript">
+jQuery.noConflict();
+
+//freight functions
+function get_carrier(){
+var carrier = jQuery("input[name=Carrier]:radio:checked").val();
+jQuery( "#carrier_radio_select" ).remove();
+jQuery('<input>')
+.attr('id', 'carrier_radio_select')
+.attr('type', 'hidden')
+.attr('value', carrier)
+.appendTo('#carrier_radio_select_div')
+
+}
+
+
+
+function getrate_again(val,ids,address,qtid) {
+    var baseurl = jQuery('#baseurl').val();
+    if (baseurl.indexOf("index.php") >= 0) {
+        var url = baseurl.replace('/index.php','');
+    }
+	else {
+	var url = baseurl;
+	}
+    var loader_img = jQuery('#loader_url').val();
+    var warehouse_postcode = jQuery('#warehouse_postcode').val();
+    var carrier_radio_select = jQuery('#carrier_radio_select').val();
+    jQuery('.ajax-result').hide();
+    jQuery('.please-wait').hide();
+    jQuery('.pls-wait').show();
+    
+    var newaccess;
+    if(val === 'Residential') {
+        newaccess = '<input onclick="getaccessRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" /><label for="resident1" class="access_class">Threshold Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'BusinessWithDockorForklift') {
+        newaccess = '<input onclick="getaccessRates();" id="buswith1" type="checkbox" value="DEST_NOTIFY" /><label for="buswith1" class="access_class">Call before Delivery</label>\n\
+                    <input onclick="getaccessRates();" id="buswith2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswith2" class="access_class">Threshold Delivery</label>\n\
+                    <input onclick="getaccessRates();" id="buswith3" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswith3" class="access_class">Limited Access Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'BusinessWithoutDockorForklift') {
+        newaccess = '<input onclick="getaccessRates();" id="buswithout1" type="checkbox" value="DEST_NOTIFY" /><label for="buswithout1" class="access_class">Call before Delivery</label>\n\
+                    <input onclick="getaccessRates();" id="buswithout2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswithout2" class="access_class">Threshold Delivery</label>\n\
+                    <input onclick="getaccessRates();" id="buswithout4" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswithout4" class="access_class">Limited Access Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'ConstructionSite') {
+        newaccess = '<input onclick="getaccessRates();" id="const1" type="checkbox" value="DEST_LIFT_GATE" /><label for="const1" class="access_class">Lift Gate at Delivery Point</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'ConventionCenterorTradeshow') {
+        newaccess = '<input onclick="getaccessRates();" id="convent1" type="checkbox" value="DEST_LIFT_GATE" /><label for="convent1" class="access_class">Lift Gate at Delivery Point</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'Terminal') {
+        newaccess = '<input onclick="getaccessRates();" id="terminal1" type="checkbox" value="DEST_NOTIFY" /><label for="terminal1" class="access_class">Call before Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    }
+    
+    jQuery.ajax({
+        url:url+'loctype_api.php',
+        type: "POST",
+        dataType:"json",
+        data:({
+            loctype:val,
+            proid:ids,
+            address:address,
+            quote:qtid,
+            img:loader_img,
+			warehouse_postcode:warehouse_postcode,
+			carrier_radio_select:carrier_radio_select
+        }),
+        success: function(data) {
+            jQuery('.pls-wait').hide();
+            jQuery.each( data.rates, function( key, value ) {
+                var newdata = '<div style="display: none; height: 35px; margin-top: 20px;" class="pls-wait"><span id="loader_loctype'+key+'">\n\
+                    <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif'); ?>"></span>\n\
+                    <span>Loading Carrier Rates</span></div>'+value;
+                jQuery('#ajax_response'+key).html(newdata);
+            });
+        }
+     });
+}
+
+function getrate_again_one(val,ids,address,qtid) {
+    var baseurl = jQuery('#baseurl').val();
+    if (baseurl.indexOf("index.php") >= 0) {
+        var url = baseurl.replace('/index.php','');
+    }
+	else {
+	var url = baseurl;
+	}
+    var loader_img = jQuery('#loader_url').val();
+    var warehouse_postcode = jQuery('#warehouse_postcode').val();
+    var carrier_radio_select = jQuery('#carrier_radio_select').val();
+    jQuery('.ajax-result').hide();
+    jQuery('.please-wait').hide();
+    jQuery('.pls-wait').show();
+    
+    var newaccess;
+    if(val === 'Residential') {
+        newaccess = '<input onclick="getaccessRates_one();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" /><label for="resident1" class="access_class">Threshold Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'BusinessWithDockorForklift') {
+        newaccess = '<input onclick="getaccessRates_one();" id="buswith1" type="checkbox" value="DEST_NOTIFY" /><label for="buswith1" class="access_class">Call before Delivery</label>\n\
+                    <input onclick="getaccessRates_one();" id="buswith2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswith2" class="access_class">Threshold Delivery</label>\n\
+                    <input onclick="getaccessRates_one();" id="buswith3" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswith3" class="access_class">Limited Access Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'BusinessWithoutDockorForklift') {
+        newaccess = '<input onclick="getaccessRates_one();" id="buswithout1" type="checkbox" value="DEST_NOTIFY" /><label for="buswithout1" class="access_class">Call before Delivery</label>\n\
+                    <input onclick="getaccessRates_one();" id="buswithout2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswithout2" class="access_class">Threshold Delivery</label>\n\
+                    <input onclick="getaccessRates_one();" id="buswithout4" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswithout4" class="access_class">Limited Access Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'ConstructionSite') {
+        newaccess = '<input onclick="getaccessRates_one();" id="const1" type="checkbox" value="DEST_LIFT_GATE" /><label for="const1" class="access_class">Lift Gate at Delivery Point</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'ConventionCenterorTradeshow') {
+        newaccess = '<input onclick="getaccessRates_one();" id="convent1" type="checkbox" value="DEST_LIFT_GATE" /><label for="convent1" class="access_class">Lift Gate at Delivery Point</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'Terminal') {
+        newaccess = '<input onclick="getaccessRates_one();" id="terminal1" type="checkbox" value="DEST_NOTIFY" /><label for="terminal1" class="access_class">Call before Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    }
+    
+    jQuery.ajax({
+        url:url+'loctype_api_one.php',
+        type: "POST",
+        dataType:"json",
+        data:({
+            loctype:val,
+            proid:ids,
+            address:address,
+            quote:qtid,
+            img:loader_img,
+			warehouse_postcode:warehouse_postcode,
+			carrier_radio_select:carrier_radio_select
+        }),
+        success: function(data) {
+            jQuery('.pls-wait').hide();
+            jQuery.each( data.rates, function( key, value ) {
+                var newdata = '<div style="display: none; height: 35px; margin-top: 20px;" class="pls-wait"><span id="loader_loctype'+key+'">\n\
+                    <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif'); ?>"></span>\n\
+                    <span>Loading Carrier Rates</span></div>'+value;
+                jQuery('#ajax_response'+key).html(newdata);
+            });
+        }
+     });
+}
+
+function getaccessRates() {
+    var searchIDs = [];
+    jQuery(".accessories input:checkbox:checked").map(function(){
+          searchIDs.push(jQuery(this).val());
+    });
+    
+    var baseurl = jQuery('#baseurl').val();
+    var warehouse_postcode = jQuery('#warehouse_postcode').val();
+    if (baseurl.indexOf("index.php") >= 0) {
+        var url = baseurl.replace('/index.php','');
+    }
+	else {
+	var url = baseurl;
+	}
+    var loader_img = jQuery('#loader_url').val();
+    var loctype = jQuery('#location_type').val();
+    var carrier_radio_select = jQuery('#carrier_radio_select').val();
+	
+    var ids = jQuery('#freight_ids').val();
+    var address = jQuery('#post_address').val();
+    var qtid = jQuery('#quoteid').val();
+    
+    jQuery('.ajax-result').hide();
+    jQuery('.please-wait').hide();
+    jQuery('.pls-wait').show();
+    
+    jQuery.ajax({
+        url:url+'loctype_api.php',
+        type: "POST",
+        dataType:"json",
+        data:({
+            loctype:loctype,
+            proid:ids,
+            address:address,
+            quote:qtid,
+            img:loader_img,
+            accessorials:searchIDs,
+			warehouse_postcode:warehouse_postcode,
+			carrier_radio_select:carrier_radio_select
+        }),
+        success: function(data) {
+            jQuery('.pls-wait').hide();
+            jQuery.each( data.rates, function( key, value ) {
+                var newdata = '<div style="display: none; height: 35px; margin-top: 20px;" class="pls-wait"><span id="loader_loctype'+key+'">\n\
+                    <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif'); ?>"></span>\n\
+                    <span>Loading Carrier Rates</span></div>'+value;
+                jQuery('#ajax_response'+key).html(newdata);
+            });
+        }
+     });
+}
+function getaccessRates_one() {
+    var searchIDs = [];
+    jQuery(".accessories input:checkbox:checked").map(function(){
+          searchIDs.push(jQuery(this).val());
+    });
+    
+    var baseurl = jQuery('#baseurl').val();
+    var warehouse_postcode = jQuery('#warehouse_postcode').val();
+    if (baseurl.indexOf("index.php") >= 0) {
+        var url = baseurl.replace('/index.php','');
+    }
+	else {
+	var url = baseurl;
+	}
+    var loader_img = jQuery('#loader_url').val();
+    var loctype = jQuery('#location_type').val();
+    var carrier_radio_select = jQuery('#carrier_radio_select').val();
+	
+    var ids = jQuery('#freight_ids').val();
+    var address = jQuery('#post_address').val();
+    var qtid = jQuery('#quoteid').val();
+    
+    jQuery('.ajax-result').hide();
+    jQuery('.please-wait').hide();
+    jQuery('.pls-wait').show();
+    
+    jQuery.ajax({
+        url:url+'loctype_api_one.php',
+        type: "POST",
+        dataType:"json",
+        data:({
+            loctype:loctype,
+            proid:ids,
+            address:address,
+            quote:qtid,
+            img:loader_img,
+            accessorials:searchIDs,
+			warehouse_postcode:warehouse_postcode,
+			carrier_radio_select:carrier_radio_select
+        }),
+        success: function(data) {
+            jQuery('.pls-wait').hide();
+            jQuery.each( data.rates, function( key, value ) {
+                var newdata = '<div style="display: none; height: 35px; margin-top: 20px;" class="pls-wait"><span id="loader_loctype'+key+'">\n\
+                    <img class="v-middle" title="Loading carrier rates..." alt="Loading carrier rates..." src="<?php echo $this->getSkinUrl('images/opc-ajax-loader.gif'); ?>"></span>\n\
+                    <span>Loading Carrier Rates</span></div>'+value;
+                jQuery('#ajax_response'+key).html(newdata);
+            });
+        }
+     });
+}
+
+
+
+
+
+function apicallrate(){
+var current_page = jQuery("#current_page").val(); 
+var quote_id = jQuery("#quote_id").val();
+var weight = jQuery("#weight").val();
+var address = jQuery("#address").val();
+ if (window.XMLHttpRequest)
+  {// code for IE7+, Firefox, Chrome, Opera, Safari
+  xmlhttp=new XMLHttpRequest();
+  }
+else
+  {// code for IE6, IE5
+  xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+xmlhttp.onreadystatechange=function()
+  {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200)
+    {
+	 document.getElementById("pls_wait").style.display='none';
+   document.getElementById("ajax_response_else").innerHTML=xmlhttp.responseText;
+    }
+  }
+xmlhttp.open("GET",current_page+'?quote_id='+quote_id+'&weight='+weight+'&address='+address,true);
+xmlhttp.send(); 
+
+	
+}
+function removefreight(id){
+var current_page = jQuery("#remo").val(); 
+ if (window.XMLHttpRequest)
+  {// code for IE7+, Firefox, Chrome, Opera, Safari
+  xmlhttp=new XMLHttpRequest();
+  }
+else
+  {// code for IE6, IE5
+  xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+xmlhttp.onreadystatechange=function()
+  {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200)
+    {
+	// document.getElementById("pls_wait").style.display='none';
+   //document.getElementById("ajax_response_else").innerHTML=xmlhttp.responseText;
+  // alert(xmlhttp.responseText);
+   var value = xmlhttp.responseText.trim();
+   if(value == 'yes'){
+   location.reload(true);
+   }
+    }
+  }
+xmlhttp.open("GET",current_page+'?yes='+id,true);
+xmlhttp.send(); 
+
+	
+}
+
+
+
+function apicallrateRates(){
+ var searchIDs = [];
+    jQuery(".accessories input:checkbox:checked").map(function(){
+          searchIDs.push(jQuery(this).val());
+    });
+var current_page = jQuery("#current_page").val(); 
+var quote_id = jQuery("#quote_id").val();
+var weight = jQuery("#weight").val();
+var address = jQuery("#address").val();
+var loc_val = jQuery("#location_type").val();
+document.getElementById("pls_wait").style.display='block';
+document.getElementById("ajax_result").style.display='none';
+ if (window.XMLHttpRequest)
+  {// code for IE7+, Firefox, Chrome, Opera, Safari
+  xmlhttp=new XMLHttpRequest();
+  }
+else
+  {// code for IE6, IE5
+  xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+xmlhttp.onreadystatechange=function()
+  {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200)
+    {
+	 document.getElementById("pls_wait").style.display='none';
+   document.getElementById("ajax_response_else").innerHTML=xmlhttp.responseText;
+    }
+  }
+xmlhttp.open("GET",current_page+'?quote_id='+quote_id+'&weight='+weight+'&address='+address+'&accessorials='+searchIDs+'&loc_val='+loc_val,true);
+xmlhttp.send(); 
+
+	
+}
+
+
+
+function apicallrate_location(val){
+var current_page = jQuery("#current_page").val(); 
+var quote_id = jQuery("#quote_id").val();
+var weight = jQuery("#weight").val();
+var address = jQuery("#address").val();
+document.getElementById("pls_wait").style.display='block';
+document.getElementById("ajax_result").style.display='none';
+ if(val === 'Residential') {
+        newaccess = '<input onclick="apicallrateRates();" id="resident1" type="checkbox" value="DEST_INSIDE_DEL" /><label for="resident1" class="access_class">Threshold Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'BusinessWithDockorForklift') {
+        newaccess = '<input onclick="apicallrateRates();" id="buswith1" type="checkbox" value="DEST_NOTIFY" /><label for="buswith1" class="access_class">Call before Delivery</label>\n\
+                    <input onclick="apicallrateRates();" id="buswith2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswith2" class="access_class">Threshold Delivery</label>\n\
+                    <input onclick="apicallrateRates();" id="buswith3" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswith3" class="access_class">Limited Access Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'BusinessWithoutDockorForklift') {
+        newaccess = '<input onclick="apicallrateRates();" id="buswithout1" type="checkbox" value="DEST_NOTIFY" /><label for="buswithout1" class="access_class">Call before Delivery</label>\n\
+                    <input onclick="apicallrateRates();" id="buswithout2" type="checkbox" value="DEST_INSIDE_DEL" /><label for="buswithout2" class="access_class">Threshold Delivery</label>\n\
+                    <input onclick="apicallrateRates();" id="buswithout4" type="checkbox" value="DEST_LIMITED_DEL" /><label for="buswithout4" class="access_class">Limited Access Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'ConstructionSite') {
+        newaccess = '<input onclick="apicallrateRates();" id="const1" type="checkbox" value="DEST_LIFT_GATE" /><label for="const1" class="access_class">Lift Gate at Delivery Point</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'ConventionCenterorTradeshow') {
+        newaccess = '<input onclick="apicallrateRates();" id="convent1" type="checkbox" value="DEST_LIFT_GATE" /><label for="convent1" class="access_class">Lift Gate at Delivery Point</label>';
+        jQuery('.accessories').html(newaccess);
+    } else if(val === 'Terminal') {
+        newaccess = '<input onclick="apicallrateRates();" id="terminal1" type="checkbox" value="DEST_NOTIFY" /><label for="terminal1" class="access_class">Call before Delivery</label>';
+        jQuery('.accessories').html(newaccess);
+    }
+ if (window.XMLHttpRequest)
+  {// code for IE7+, Firefox, Chrome, Opera, Safari
+  xmlhttp=new XMLHttpRequest();
+  }
+else
+  {// code for IE6, IE5
+  xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+  }
+xmlhttp.onreadystatechange=function()
+  {
+  if (xmlhttp.readyState==4 && xmlhttp.status==200)
+    {
+	 document.getElementById("pls_wait").style.display='none';
+	//alert(xmlhttp.responseText);
+   document.getElementById("ajax_response_else").innerHTML=xmlhttp.responseText;
+ }
+  }
+xmlhttp.open("GET",current_page+'?quote_id='+quote_id+'&weight='+weight+'&loc_val='+val+'&address='+address,true);
+xmlhttp.send(); 
+
+	
+}
+
+function ajaxcallnew(id,pr,qote,carrier,rateid,days,grandship) {
+	var dest = jQuery('#location_type').val();
+    jQuery('#apply_rate'+id).show();
+    ajaxresponse = false;
+    var valMy = pr;
+    var di = id;
+    var quote = qote;
+    var car = carrier;
+    var rateid = rateid;
+    var days = days;
+    var grandship = grandship;
+    parameters={val:valMy, diq:di, qtid:quote, carname:car , dest:dest, rateid:rateid, days:days,grandship:grandship};
+    var url = '<?php echo $this->getUrl('freight/index/myfun'); ?>';
+    new Ajax.Request(url,{
+        parameters:parameters,
+        onComplete: function (transport){
+            jQuery('#apply_rate'+id).hide();
+            var response = transport.responseText.evalJSON();
+            alert(response);
+        }
+    });
+}
+
+function ajaxcallnew_no(id,pr,qote,carrier,rateid) {
+	var dest = jQuery('#location_type').val();
+    jQuery('#apply_rate'+id).show();
+    ajaxresponse = false;
+    var valMy = pr;
+    var di = id;
+    var quote = qote;
+    var car = carrier;
+    var rateid = rateid;
+    parameters={val:valMy, diq:di, qtid:quote, carname:car , dest:dest, rateid:rateid};
+    var url = '<?php echo $this->getUrl('freight/index/mynofun'); ?>';
+    new Ajax.Request(url,{
+        parameters:parameters,
+        onComplete: function (transport){
+            jQuery('#apply_rate'+id).hide();
+            var response = transport.responseText.evalJSON();
+            alert(response);
+        }
+    });
+}
+
+
+
+
+</script>

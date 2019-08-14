@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Freightcenter_CustomWare>
+            <active>true</active>
+            <codePool>local</codePool>
+        </Freightcenter_CustomWare>
+    </modules>
+</config> 
