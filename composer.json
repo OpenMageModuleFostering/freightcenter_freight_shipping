@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/FreightCenter_Freight_Shipping",
+    "name": "OpenMageModuleFostering\/FreightCenter_Freight_Shipping",
     "type": "magento-module",
     "license": "OSL",
     "homepage": "",
     "description": "Default",
     "authors": [
-    {
-        "name": "Freight",
-        "email": "FreightCenter@gmail.com"
-    }
-],
+        {
+            "name": "Freight",
+            "email": "FreightCenter@gmail.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
