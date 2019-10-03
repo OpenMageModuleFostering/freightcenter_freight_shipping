@@ -1,7 +1,7 @@
 {
-    "name": "OpenMageModuleFostering\/FreightCenter_Freight_Shipping",
+    "name": "openmage-module-fostering\/freightcenter_freight_shipping",
     "type": "magento-module",
-    "license": "OSL",
+    "license": "OSL-3.0",
     "homepage": "",
     "description": "Default",
     "authors": [
